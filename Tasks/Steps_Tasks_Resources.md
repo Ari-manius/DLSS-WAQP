@@ -1,7 +1,7 @@
 >Here we can post all the good material we find, other repositories, bots, papers and everything
 
 ## Project Milestones: 
-- Next Meeting: 5.7.25
+- ==Next Meeting: 5.7.25==
 - Presentation: 16.7.25
 - Deadline: 31.8.25
 
