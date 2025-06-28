@@ -4,8 +4,8 @@ Wikipedia Article Quality Prediction (WAQP) through Citation Networks
 ## Project Description
 
 This project uses Graph Neural Networks (GNNs) to predict Wikipedia article quality ratings by analyzing citation networks and article features. Students will develop models to understand how quality signals propagate through knowledge networks, providing insights for collaborative content quality assessment. For similar studies, refer to:
-https://dl.acm.org/doi/10.1145/3308558.3313618
-https://arxiv.org/abs/2007.02901
+- https://dl.acm.org/doi/10.1145/3308558.3313618
+- https://arxiv.org/abs/2007.02901
 
 ## Project Steps
 
