@@ -38,6 +38,11 @@ https://dumps.wikimedia.org/other/pageviews/
 
 
 ***
+## Optionals: 
+- use LLM to create new feature for GNNS (Kuon)
+
+***
+
 ## Literature 
 https://opensym.org/wp-content/uploads/2019/08/os19-paper-A13-schmidt.pdf
 
