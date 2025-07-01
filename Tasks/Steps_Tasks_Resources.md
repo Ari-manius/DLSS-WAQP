@@ -31,6 +31,8 @@ https://github.com/corradomonti/wikipedia-categories
 ## Features (Nafiß)
 https://github.com/Ari-manius/DLSS-WAQP/blob/main/Tasks/final_feature.csv
 ### Pageviews (Nafiß)
+https://github.com/Ari-manius/DLSS-WAQP/blob/main/Tasks/Get%20Pageviews.docx
+
 https://wikimedia.org/api/rest_v1/#/Pageviews%20data
 https://dumps.wikimedia.org/other/pageviews/
 
