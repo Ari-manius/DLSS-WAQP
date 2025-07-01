@@ -31,13 +31,20 @@ https://github.com/corradomonti/wikipedia-categories
 ## Features (Nafiß)
 https://github.com/Ari-manius/DLSS-WAQP/blob/main/Tasks/final_feature.csv
 ### Pageviews (Nafiß)
-https://github.com/Ari-manius/DLSS-WAQP/blob/main/Tasks/Get%20Pageviews.docx
+Get Pageviews for Wikipedia Dump Articles
+(note: cannot get historical pageview counts before July 2015 via this API.)
+1.	Get Article Titles from Dump(extract titles After running WikiExtractor)
+2.	Format Article Titles for API Use(Replace spaces with underscores)
+3.	Use the Wikimedia Pageviews API
+4.	Save to CSV
+https://github.com/Ari-manius/DLSS-WAQP/blob/main/Tasks/pageview.ipynb
 
 https://wikimedia.org/api/rest_v1/#/Pageviews%20data
 https://dumps.wikimedia.org/other/pageviews/
 
 ### Edit History (Nafiß)
-
+Get Edit History for Multiple Articles
+https://github.com/Ari-manius/DLSS-WAQP/blob/main/Tasks/history.ipynb
 
 ### Other Features 
 
