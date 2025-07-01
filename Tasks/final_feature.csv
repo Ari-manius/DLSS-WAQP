@@ -1,0 +1,26 @@
+name,source,category,type,definition
+Article length,Wikipedia dump,Structure,Content,Total number of bytes/characters/sentences in the article.
+Number of sections/subsections/paragraph,Wikipedia dump,Structure,Content,"Count of section headers/paragraph , .., indicating article organization."
+Infobox presence,Wikipedia dump,Structure,Content,Whether the article has an infobox template.
+Number of images,Wikipedia dump,Structure,Content,Total number of images included in the article.
+Number of categories,Wikipedia dump,Structure,Content,Number of categories linked at the end of the article.
+Internal links count,Wikipedia dump,Structure,Content,Count of internal links pointing to other Wikipedia pages.
+External links count,Wikipedia dump,Structure,Content,Count of links pointing to external websites.
+Templates used,Wikipedia dump,Structure,Content,Set of templates applied to the article.
+POS tag counts,Wikipedia dump,Style,Content,Distribution of part-of-speech tags in the article.
+Readability scores,Wikipedia dump,Readability,Content,Metrics like Flesch or Gunning Fog to estimate reading level.
+doc2vec embedding,Wikipedia dump,Semantic,Content,Latent vector capturing article semantics.
+Number of references,Wikipedia Dump,Structure,Content,Count of references cited.
+"Readability scores (e.g., Flesch)",Wikipedia Dump,Readability,Content,Measures ease of reading.
+Pagelinks (in/out),Wikipedia dump,Network,Content,Links to/from other articles (network edges)
+Abstract size,Wikipedia dump,Structure,Content,Length of the article’s introductory abstract
+Citation templates count,Wikipedia Dump,Structure,Content,Templates used for citing sources.
+Last 100 edits timestamps,Wikipedia API,Network,Editor,Timestamps of the latest 100 edits on the article.
+Edit count,Wikipedia API,Network,Editor,Number of times the article has been edited.
+Unique editors,Wikipedia API,Network,Editor,Number of distinct users who edited the article.
+Anonymous vs registered edits,Wikipedia API,Network,Editor,Ratio of anonymous to registered user edits.
+Number of editors,Wikipedia API,Metadata,Author,Total distinct users who edited the article
+Pageviews (monthly),Pageviews API,Network,Editor,Monthly pageview counts of an article.
+Unique editors,MediaWiki API,Author Activity,Author/Editor,Number of distinct editors.
+TF-IDF diff over edits,MediaWiki API,Semantic,Content,Semantic change over revisions.
+Last edit time,MediaWiki API,Author Activity,Author/Editor,Timestamp of the last edit.
