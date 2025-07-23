@@ -65,3 +65,7 @@ This project uses Graph Neural Networks (GNNs) to predict Wikipedia article qual
 - Analysis regarding quality propagation mechanisms.
 - Discussion of applications for collaborative content systems.
 - Report writing.
+
+***
+
+- About 10 pages 
