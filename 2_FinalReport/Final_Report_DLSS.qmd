@@ -1,7 +1,8 @@
 ---
-title: "Final Report DLSS"
+title: "Wikipedia Article Quality Prediction"
+subtitle: "Final Report: DLSS"
 author: 
-  - name: "Nafiß Tavakol, Kuon Ito, Lorenz Rückert, Marius Helten"
+  - name: "Nafiß Tavakol, Kuon Ito, Lorenz, Rückert, Marius Helten"
     affiliation: "1406810"
 editor: visual
 date: "`r format(Sys.Date(), '%B %d, %Y')`" 
@@ -25,9 +26,12 @@ header-includes:
   - \predate{\begin{center}\large} 
   - \postdate{\begin{figure}[H]
       \centering
-      \includegraphics[width=1.0\textwidth]{Images/TitleImage.png}
+      \includegraphics[width=1.0\textwidth]{Images/.png}
     \end{figure}
     \end{center}} 
+bibliography: references.bib
+cite-method: citeproc
+link-citations: true
 ---
 
 ```{r setup, echo = FALSE}
@@ -37,6 +41,8 @@ knitr::opts_chunk$set(error = TRUE)
 # Introduction
 
 (Problem description and approach)
+
+Citing this way: [-@hanGraphNeuralNetworks2020], [-@montiFakeNewsDetection2019]
 
 # Data Analysis
 
