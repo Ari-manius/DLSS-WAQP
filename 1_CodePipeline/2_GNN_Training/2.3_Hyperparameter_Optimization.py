@@ -19,7 +19,7 @@ from utils.GNN_model import ImprovedGNN, ResidualGCN, GraphAttentionNet, Residua
 from utils.earlyStopping import EarlyStopping
 from utils.initialize_weights import initialize_weights
 from utils.loss_functions import FocalLoss, ClassBalancedFocalLoss, WeightedCrossEntropyLoss
-from utils.feature_engineering import add_node_degree_features, compute_graph_statistics
+from utils.feature_engineering import compute_graph_statistics
 from utils.cross_validation import cross_validate_model, print_cv_results
 
 
