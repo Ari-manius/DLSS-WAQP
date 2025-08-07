@@ -26,7 +26,7 @@ header-includes:
   - \predate{\begin{center}\large} 
   - \postdate{\begin{figure}[H]
       \centering
-      \includegraphics[width=1.0\textwidth]{Images/.png}
+      \includegraphics[width=1.0\textwidth]{Images/placeholder.png}
     \end{figure}
     \end{center}} 
 bibliography: references.bib
@@ -50,7 +50,11 @@ Citing this way: [-@hanGraphNeuralNetworks2020], [-@montiFakeNewsDetection2019]
 
 ## Preprocessing
 
+(Me?)
+
 ## Graph Statistics
+
+(Me?)
 
 # Methods
 
@@ -68,4 +72,9 @@ Citing this way: [-@hanGraphNeuralNetworks2020], [-@montiFakeNewsDetection2019]
 
 ## Code and Data
 
+-   API´s
+-   Python Packages
+
 ## Literature
+
+-   Citeable papers

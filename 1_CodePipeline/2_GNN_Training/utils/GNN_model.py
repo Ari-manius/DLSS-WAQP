@@ -1,5 +1,6 @@
-from torch_geometric.nn import GCNConv, SAGEConv, BatchNorm, InnerProductDecoder  # Graph Convolutional Network layer implementation
+from torch_geometric.nn import GCNConv, SAGEConv, BatchNorm, InnerProductDecoder, GATConv  # Graph Convolutional Network layer implementation
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import LayerNorm
 
@@ -141,7 +142,7 @@ class GraphSAGE_Regression(torch.nn.Module):
 
         x = self.conv3(x, edge_index)
 
-        return x.view(-1)  # flatten to shape [num_nodes]
+        return x  # keep shape [num_nodes, 1] to match target
 
 class ImprovedGraphSAGEReg(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim=64, dropout=0.5):
@@ -171,7 +172,7 @@ class ImprovedGraphSAGEReg(torch.nn.Module):
         x = F.dropout(x, p=self.dropout, training=self.training)
 
         x = self.conv3(x, edge_index)
-        return x.view(-1)
+        return x  # keep shape [num_nodes, 1] to match target
 
 
 ##Anomaly Detection
@@ -199,3 +200,222 @@ class GraphAutoEncoder(torch.nn.Module):
 
     def decode(self, z):
         return torch.sigmoid(torch.matmul(z, z.t()))  # Edge probabilities
+
+
+# Enhanced Models with Residual Connections and Better Architecture
+
+class ResidualGCN(torch.nn.Module):
+    """
+    GCN with residual connections and improved architecture for classification.
+    """
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers=3, dropout=0.5):
+        super(ResidualGCN, self).__init__()
+        
+        self.num_layers = num_layers
+        self.dropout = dropout
+        
+        # Input projection layer
+        self.input_proj = nn.Linear(input_dim, hidden_dim)
+        
+        # GCN layers
+        self.convs = nn.ModuleList()
+        self.norms = nn.ModuleList()
+        
+        for i in range(num_layers):
+            self.convs.append(GCNConv(hidden_dim, hidden_dim))
+            self.norms.append(LayerNorm(hidden_dim))
+        
+        # Output layer
+        self.output_proj = nn.Linear(hidden_dim, output_dim)
+        
+        # Skip connection projections for dimension matching
+        self.skip_projs = nn.ModuleList()
+        for i in range(num_layers):
+            self.skip_projs.append(nn.Identity())
+
+    def forward(self, data):
+        x, edge_index = data.x, data.edge_index
+        
+        # Input projection
+        x = self.input_proj(x)
+        x = F.relu(x)
+        
+        # GCN layers with residual connections
+        for i in range(self.num_layers):
+            identity = self.skip_projs[i](x)
+            
+            x = self.convs[i](x, edge_index)
+            x = self.norms[i](x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+            
+            # Residual connection
+            x = x + identity
+        
+        # Output projection
+        x = self.output_proj(x)
+        return x
+
+
+class ResidualGraphSAGE(torch.nn.Module):
+    """
+    GraphSAGE with residual connections and improved architecture.
+    """
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers=3, dropout=0.5):
+        super(ResidualGraphSAGE, self).__init__()
+        
+        self.num_layers = num_layers
+        self.dropout = dropout
+        
+        # Input projection
+        self.input_proj = nn.Linear(input_dim, hidden_dim)
+        
+        # SAGE layers
+        self.convs = nn.ModuleList()
+        self.norms = nn.ModuleList()
+        
+        for i in range(num_layers):
+            self.convs.append(SAGEConv(hidden_dim, hidden_dim))
+            self.norms.append(LayerNorm(hidden_dim))
+        
+        # Output layer
+        self.output_proj = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, data):
+        x, edge_index = data.x, data.edge_index
+        
+        # Input projection
+        x = self.input_proj(x)
+        x = F.gelu(x)
+        
+        # SAGE layers with residual connections
+        for i in range(self.num_layers):
+            identity = x
+            
+            x = self.convs[i](x, edge_index)
+            x = self.norms[i](x)
+            x = F.gelu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+            
+            # Residual connection
+            x = x + identity
+        
+        # Output projection
+        x = self.output_proj(x)
+        return x
+
+
+class GraphAttentionNet(torch.nn.Module):
+    """
+    Graph Attention Network (GAT) implementation for both classification and regression.
+    """
+    def __init__(self, input_dim, hidden_dim, output_dim, heads=4, num_layers=2, dropout=0.3):
+        super(GraphAttentionNet, self).__init__()
+        
+        self.num_layers = num_layers
+        self.dropout = dropout
+        
+        self.convs = nn.ModuleList()
+        self.norms = nn.ModuleList()
+        
+        # First layer
+        self.convs.append(GATConv(input_dim, hidden_dim, heads=heads, dropout=dropout, concat=True))
+        self.norms.append(LayerNorm(hidden_dim * heads))
+        
+        # Hidden layers
+        for i in range(num_layers - 2):
+            self.convs.append(GATConv(hidden_dim * heads, hidden_dim, heads=heads, dropout=dropout, concat=True))
+            self.norms.append(LayerNorm(hidden_dim * heads))
+        
+        # Final layer (no concatenation, average attention heads)
+        if num_layers > 1:
+            self.convs.append(GATConv(hidden_dim * heads, output_dim, heads=1, dropout=dropout, concat=False))
+
+    def forward(self, data):
+        x, edge_index = data.x, data.edge_index
+        
+        # Apply GAT layers
+        for i in range(len(self.convs) - 1):
+            x = self.convs[i](x, edge_index)
+            x = self.norms[i](x)
+            x = F.elu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+        
+        # Final layer
+        x = self.convs[-1](x, edge_index)
+        
+        return x
+
+
+class ImprovedGNN(torch.nn.Module):
+    """
+    Improved GNN combining multiple techniques:
+    - Residual connections
+    - Layer normalization
+    - GELU activation
+    - Dropout
+    - Multiple aggregation functions
+    """
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers=3, dropout=0.4, use_sage=True):
+        super(ImprovedGNN, self).__init__()
+        
+        self.num_layers = num_layers
+        self.dropout = dropout
+        self.use_sage = use_sage
+        
+        # Feature preprocessing
+        self.input_norm = LayerNorm(input_dim)
+        self.input_proj = nn.Linear(input_dim, hidden_dim)
+        
+        # Graph convolution layers
+        self.convs = nn.ModuleList()
+        self.norms = nn.ModuleList()
+        self.skip_connections = nn.ModuleList()
+        
+        Conv = SAGEConv if use_sage else GCNConv
+        
+        for i in range(num_layers):
+            self.convs.append(Conv(hidden_dim, hidden_dim))
+            self.norms.append(LayerNorm(hidden_dim))
+            self.skip_connections.append(nn.Identity())
+        
+        # Output layers
+        self.output_norm = LayerNorm(hidden_dim)
+        self.output_proj = nn.Linear(hidden_dim, output_dim)
+        
+        # Initialize weights
+        self.apply(self._init_weights)
+    
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            torch.nn.init.xavier_uniform_(module.weight)
+            if module.bias is not None:
+                module.bias.data.zero_()
+    
+    def forward(self, data):
+        x, edge_index = data.x, data.edge_index
+        
+        # Input preprocessing
+        x = self.input_norm(x)
+        x = self.input_proj(x)
+        x = F.gelu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        
+        # Graph convolution with residual connections
+        for i in range(self.num_layers):
+            identity = self.skip_connections[i](x)
+            
+            # Graph convolution
+            x = self.convs[i](x, edge_index)
+            x = self.norms[i](x)
+            x = F.gelu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+            
+            # Residual connection
+            x = x + identity
+        
+        # Output
+        x = self.output_norm(x)
+        x = self.output_proj(x)
+        
+        return x

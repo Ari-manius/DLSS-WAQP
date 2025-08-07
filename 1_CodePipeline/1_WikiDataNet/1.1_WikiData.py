@@ -35,38 +35,36 @@ print("Processing Target")
 wiki_quality = ["FA", "FL", "FM", "A", "GA", "B", "C", "Start", "Stub", "List"]
 
 wiki_quality_cat_dict = {
-    "FA":9, 
-    "FL":8,
-    "FM":7,
-    "A":6, 
-    "GA":5,
-    "B":4,
-    "C":3, 
-    "Start":2,
-    "Stub":1,
-    "List":0,     
+    "FA": int(9), 
+    "FL": int(8),
+    "FM": int(7),
+    "A": int(6), 
+    "GA": int(5),
+    "B": int(4),
+    "C": int(3), 
+    "Start": int(2),
+    "Stub": int(1),
+    "List": int(0),     
 }
 
 wiki_quality_aggcat_dict = {
-    "FA":2, 
-    "FL":2,
-    "FM":2,
-    "A":1, 
-    "GA":1,
-    "B":1,
-    "C":1, 
-    "Start":0,
-    "Stub":0,
-    "List":0, 
+    "FA":int(2), 
+    "FL":int(2),
+    "FM":int(2),
+    "A":int(1), 
+    "GA":int(1),
+    "B":int(1),
+    "C":int(1), 
+    "Start":int(0),
+    "Stub":int(0),
+    "List":int(0), 
 }
 
-# df_articles['all_quality_classes'] = df_articles['all_quality_classes'].apply(parse_list)
-# df_articles['QC_num'] = df_articles['all_quality_classes'].apply(mean_list)
-
 df_articles = df_articles.with_columns([
-    pl.col('quality_class').replace(wiki_quality_aggcat_dict).alias('Target_QC_aggcat'),
-    pl.col('quality_class').replace(wiki_quality_cat_dict).alias('Target_QC_cat')
+    pl.col('quality_class').replace(wiki_quality_aggcat_dict).cast(pl.Int64).alias('Target_QC_aggcat'),
+    pl.col('quality_class').replace(wiki_quality_cat_dict).cast(pl.Int64).alias('Target_QC_cat')
 ])
+
 df_articles = df_articles.with_columns([
     pl.col('Target_QC_cat').log1p().alias('Target_QC_numlog')
 ])
@@ -90,15 +88,17 @@ df_articles = df_articles.with_columns([
     pl.col('has_infobox').cast(pl.Int64).alias('has_infobox_encoded')
 ])
 
-######
+###### 
+# Optionally remove this part? 
 print("One Hot and Dimensionality Reduction")
 ohe = OneHotEncoder(handle_unknown='ignore')
 X_ohe = ohe.fit_transform(df_articles[['assessment_source']].to_numpy())
-reducer = umap.UMAP(n_components=2)
+reducer = umap.UMAP(n_components=3)
 X_umap = reducer.fit_transform(X_ohe)
 df_articles = df_articles.with_columns([
     pl.Series("assessment_source_umap_1", X_umap[:, 0]),
-    pl.Series("assessment_source_umap_2", X_umap[:, 1])
+    pl.Series("assessment_source_umap_2", X_umap[:, 1]),
+    pl.Series("assessment_source_umap_3", X_umap[:, 2]),
 ])
 
 ##############
@@ -116,6 +116,7 @@ df_ArticleTargetFeatures = df_articles[["pageid",
                                         "has_infobox_encoded",
                                         "protection_status_encoded",  
                                         "assessment_source_umap_1", 
-                                        "assessment_source_umap_2"]]
+                                        "assessment_source_umap_2",
+                                        "assessment_source_umap_3"]]
 
 df_ArticleTargetFeatures.write_parquet("data/wikidata_ready4net.parquet")

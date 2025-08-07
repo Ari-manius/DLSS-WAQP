@@ -4,59 +4,90 @@ import numpy as np
 from sklearn.utils.extmath import randomized_svd
 import scipy as sp
 from concurrent.futures import ThreadPoolExecutor
+import time
+from datetime import datetime
 
-print("graph-tool version:", gt.__version__)
+def log_progress(message):
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {message}")
+
+start_time = time.time()
+log_progress(f"Starting pipeline - graph-tool version: {gt.__version__}")
 
 ### Loading
-print("Opening Features...")
+log_progress("[1/8] Opening Features...")
 
 df_article_index = pl.read_parquet("data/article_TitleIndex_dict.parquet")
+print(f"Loaded {len(df_article_index)} article indices")
+
 df_wikidata_articles = pl.read_parquet("data/wikidata_ready4net.parquet")
+print(f"Loaded {len(df_wikidata_articles)} wikidata articles")
 
 ### Edges 
-print("Processing Edges...")
+log_progress("[2/8] Processing Edges...")
 
 df_edges = pl.read_csv('data/cleaned_edges_final.csv')
+print(f"Loaded {len(df_edges)} edges")
 
 title_to_id = dict(zip(df_article_index["title"], df_article_index["id"]))
 df_edges = df_edges.with_columns([
     pl.col("source").replace(title_to_id),
     pl.col("target").replace(title_to_id)
 ]).drop_nulls()
+print(f"After mapping and filtering: {len(df_edges)} edges")
 
 list_edges = list(zip(df_edges["source"], df_edges["target"]))
 
 ### Graph-tool Network
-print("Creating Network...")
+log_progress("[3/8] Creating Network...")
 
 G_tool = gt.Graph(directed=True)
 G_tool.add_edge_list(list_edges)
+print(f"Created graph with {G_tool.num_vertices()} vertices and {G_tool.num_edges()} edges")
 
 vertices = list(G_tool.get_vertices())
 vertex_array = np.array(vertices)
 
 ### Network Metrics (Parallelized)
-print("Calculating Network Metrics...")
+log_progress("[4/8] Calculating Network Metrics...")
 
 def calculate_pagerank():
-    print("Pagerank")
-    return gt.pagerank(G_tool, epsilon=1e-4, max_iter=100)
+    log_progress("  Computing Pagerank...")
+    return gt.pagerank(G_tool, epsilon=1e-4, max_iter=1000)
 
 def calculate_katz():
-    print("Katz")
-    return gt.katz(G_tool, alpha=0.01, max_iter=100, epsilon=1e-6)
+    log_progress("  Computing Katz...")
+    return gt.katz(G_tool, alpha=0.01, max_iter=1000, epsilon=1e-6)
 
 def calculate_hits():
-    print("Hits")
-    return gt.hits(G_tool, epsilon=1e-4, max_iter=100)
+    log_progress("  Computing HITS...")
+    return gt.hits(G_tool, epsilon=1e-4, max_iter=1000)
 
 def calculate_clustering():
-    print("Clustering")
+    log_progress("  Computing Clustering...")
     return gt.local_clustering(G_tool)
 
 def calculate_core_numbers():
-    print("Core Number")
+    log_progress("  Computing Core Numbers...")
     return gt.kcore_decomposition(G_tool)
+
+def calculate_betweenness():
+    print("Betweenness (approximated)")
+    return gt.betweenness(G_tool, norm=False)
+
+def calculate_node_reciprocity():
+    print("Reciprocity")
+    A = gt.adjacency(G_tool)
+    mutual_matrix = A.multiply(A.T)
+    out_degrees = np.array(A.sum(axis=1)).flatten()
+    in_degrees = np.array(A.sum(axis=0)).flatten()
+    
+    mutual_out = np.array(mutual_matrix.sum(axis=1)).flatten()
+    max_degrees = np.maximum(in_degrees, out_degrees)
+    
+    return np.divide(mutual_out, max_degrees, 
+                    out=np.zeros_like(mutual_out, dtype=float), 
+                    where=max_degrees!=0)
 
 # Calculate degrees once (used by multiple metrics)
 in_degrees = G_tool.get_in_degrees(vertices)
@@ -69,6 +100,8 @@ with ThreadPoolExecutor(max_workers=2) as executor:
     hits_future = executor.submit(calculate_hits)
     clustering_future = executor.submit(calculate_clustering)
     core_future = executor.submit(calculate_core_numbers)
+    #betweenness_future = executor.submit(calculate_betweenness)
+    #reciprocity_future = executor.submit(calculate_node_reciprocity)
     
     # Collect results
     pagerank = pagerank_future.result()
@@ -76,6 +109,8 @@ with ThreadPoolExecutor(max_workers=2) as executor:
     hits = hits_future.result()
     clustering = clustering_future.result()
     core_numbers = core_future.result()
+    #reciprocity = reciprocity_future.result()
+    #betweenness = betweenness_future.result()
 
 eigenvalue, authority_scores, hub_scores = hits  # HITS returns (eigenvalue, authority, hub)
 
@@ -89,38 +124,54 @@ df_wikinetmetrics = pl.DataFrame({
     'authority': authority_scores.a,
     'clustering': clustering.a,
     'core_numbers': core_numbers.a,
+    #'reciprocity': reciprocity,
+    #'betweenness': betweenness.a,
 })
 
 ### Spectral Embedding
-print("Spectral Embedding...")
+log_progress("[5/8] Computing Spectral Embedding...")
 
 adj_sparse = gt.adjacency(G_tool, weight=None)
 
-degrees = np.array(adj_sparse.sum(axis=1)).flatten()
-D_inv_sqrt = sp.sparse.diags(1.0 / np.sqrt(degrees + 1e-8), format='csr')
-A_norm = D_inv_sqrt @ adj_sparse @ D_inv_sqrt
+# Make symmetric for better embedding stability
+print("Making adjacency matrix symmetric...")
+adj_symmetric = adj_sparse + adj_sparse.T
 
-U, s, Vt = randomized_svd(A_norm, n_components=5, n_iter=10, random_state=42)
-embedding_full = U  # Unscaled
+# Compute normalized Laplacian
+print("Computing normalized Laplacian...")
+degrees = np.array(adj_symmetric.sum(axis=1)).flatten()
+degrees = np.maximum(degrees, 1e-8)  # Avoid division by zero
+D_inv_sqrt = sp.sparse.diags(1.0 / np.sqrt(degrees), format='csr')
+L_norm = sp.sparse.eye(adj_symmetric.shape[0]) - D_inv_sqrt @ adj_symmetric @ D_inv_sqrt
+
+# Use eigenvectors of Laplacian (skip smallest eigenvalue)
+print("Computing SVD for spectral embedding...")
+U, s, Vt = randomized_svd(L_norm, n_components=6, n_iter=500, random_state=42)
+embedding_full = U[:, -5:]  # Use last 5 eigenvectors (largest eigenvalues)
+print(f"Embedding shape: {embedding_full.shape}, range: [{embedding_full.min():.4f}, {embedding_full.max():.4f}]")
 
 df_wikinetmetrics = df_wikinetmetrics.with_columns([
     pl.Series("spectral_embedding_1", embedding_full[:, 0]),
     pl.Series("spectral_embedding_2", embedding_full[:, 1]), 
     pl.Series("spectral_embedding_3", embedding_full[:, 2]),
+    pl.Series("spectral_embedding_4", embedding_full[:, 3]),
+    pl.Series("spectral_embedding_5", embedding_full[:, 4]),
 ])
 
 ### Remove isolated nodes (degree < 1)
-print("Filtering Network...")
+log_progress("[6/8] Filtering Network...")
 degree_mask = G_tool.get_total_degrees(vertices) >= 2
+print(f"Keeping {np.sum(degree_mask)} nodes out of {len(degree_mask)} (degree >= 2)")
 G_filt = gt.GraphView(G_tool, vfilt=degree_mask)
 G_filt = gt.Graph(G_filt, prune=True)
+print(f"Filtered graph: {G_filt.num_vertices()} vertices, {G_filt.num_edges()} edges")
 
 ### Merging and Saving
-print("Merging and Saving...")
+log_progress("[7/8] Merging and Saving...")
 df_wiki_fullfeatures = df_wikidata_articles.join(df_wikinetmetrics, how="inner", on="pageid")
 
 # Add all dataframe columns as vertex properties
-print("Adding vertex properties to graph...")
+log_progress("[8/8] Adding vertex properties to graph...")
 
 # Create pageid to vertex mapping for filtered graph
 vertex_pageids = {v: None for v in G_filt.vertices()}
@@ -180,3 +231,6 @@ output_path = "data/G_wiki.gt"
 G_filt.save(output_path)
 print(f"Saved graph to: {output_path}")
 print(f"Graph vertex properties: {list(G_filt.vertex_properties.keys())}")
+
+total_time = time.time() - start_time
+log_progress(f"Pipeline completed in {total_time:.1f} seconds ({total_time/60:.1f} minutes)")

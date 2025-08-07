@@ -1,8 +1,9 @@
 import torch
 import graph_tool as gt
 import numpy as np
+import pandas as pd
 from torch_geometric.data import Data
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, LabelEncoder, OneHotEncoder, QuantileTransformer, PowerTransformer
 
 def graphtool_to_pytorch_geometric(
     graph, 
@@ -264,7 +265,7 @@ def filter_and_scale_properties(
     target_variable : str or None
         Specific Target_ variable to keep as target. If None, uses first Target_ found
     scaling_method : str
-        Scaling method: 'standard', 'minmax', or 'robust'
+        Scaling method: 'standard', 'minmax', 'robust', 'quantile', 'power', or 'log_robust'
     exclude_patterns : list
         Patterns to exclude from features (like 'pageid', 'Target_')
     include_target_pattern : str
@@ -317,14 +318,58 @@ def filter_and_scale_properties(
         # Apply scaling
         if scaling_method == 'standard':
             scaler = StandardScaler()
+            scaled_features = scaler.fit_transform(feature_matrix)
         elif scaling_method == 'minmax':
             scaler = MinMaxScaler()
+            scaled_features = scaler.fit_transform(feature_matrix)
         elif scaling_method == 'robust':
             scaler = RobustScaler()
+            scaled_features = scaler.fit_transform(feature_matrix)
+        elif scaling_method == 'quantile':
+            # Handle NaNs and determine appropriate n_quantiles
+            feature_matrix_clean = np.nan_to_num(feature_matrix, nan=0.0)
+            
+            # Adaptive n_quantiles based on data size and uniqueness
+            n_samples = feature_matrix_clean.shape[0]
+            n_unique_vals = len(np.unique(feature_matrix_clean.flatten()))
+            n_quantiles = min(1000, n_unique_vals, n_samples // 2)
+            n_quantiles = max(10, n_quantiles)  # Minimum 10 quantiles
+            
+            if verbose:
+                print(f"Using n_quantiles={n_quantiles} for QuantileTransformer")
+            
+            scaler = QuantileTransformer(
+                output_distribution='uniform', 
+                n_quantiles=n_quantiles,
+                subsample=200000,  # Limit subsample for large datasets
+                random_state=42
+            )
+            scaled_features = scaler.fit_transform(feature_matrix_clean)
+            
+            # Post-scaling normalization to ensure stable gradients
+            scaled_features = (scaled_features - scaled_features.mean(axis=0)) / (scaled_features.std(axis=0) + 1e-8)
+            
+            # Final NaN check
+            if np.isnan(scaled_features).any():
+                print("Warning: NaNs detected after quantile scaling, falling back to robust scaling")
+                scaler = RobustScaler()
+                scaled_features = scaler.fit_transform(feature_matrix_clean)
+        elif scaling_method == 'power':
+            try:
+                scaler = PowerTransformer(method='yeo-johnson', standardize=True)
+                scaled_features = scaler.fit_transform(feature_matrix)
+            except Exception as e:
+                print(f"PowerTransformer failed: {e}")
+                print("Falling back to QuantileTransformer...")
+                scaler = QuantileTransformer(output_distribution='uniform', n_quantiles=1000)
+                scaled_features = scaler.fit_transform(feature_matrix)
+        elif scaling_method == 'log_robust':
+            # Log transform then robust scaling for positive-skewed data
+            log_features = np.log1p(np.maximum(feature_matrix, 0))  # log1p handles zeros, max ensures non-negative
+            scaler = RobustScaler()
+            scaled_features = scaler.fit_transform(log_features)
         else:
-            raise ValueError("scaling_method must be 'standard', 'minmax', or 'robust'")
-        
-        scaled_features = scaler.fit_transform(feature_matrix)
+            raise ValueError("scaling_method must be 'standard', 'minmax', 'robust', 'quantile', 'power', or 'log_robust'")
         
     else:
         scaled_features = None
@@ -362,7 +407,7 @@ def load_gt_for_pytorch(
     target_variable : str or None
         Specific Target_ variable to use as target
     scaling_method : str
-        Scaling method: 'standard', 'minmax', or 'robust'
+        Scaling method: 'standard', 'minmax', 'robust', 'quantile', 'power', or 'log_robust'
     edge_features : list, str, or None
         List of edge property names for edge features or single property name
     device : torch.device or None
@@ -432,7 +477,28 @@ def load_gt_for_pytorch(
     )
     
 
+    # Save PyTorch data
     torch.save(data, f"data/data_{scaling_method}_{target_variable}.pt")
+    
+    # Save scaled data as parquet
+    if filtered_data['features'] is not None:
+        # Create DataFrame with scaled features
+        df_scaled = pd.DataFrame(
+            filtered_data['features'], 
+            columns=filtered_data['feature_names']
+        )
+        
+        # Add target if exists
+        if filtered_data['target'] is not None:
+            df_scaled[filtered_data['target_name']] = filtered_data['target']
+        
+        # Add node IDs for reference
+        df_scaled['node_id'] = range(len(df_scaled))
+        
+        # Save as parquet
+        parquet_path = f"data/scaled_data_{scaling_method}_{target_variable}.parquet"
+        df_scaled.to_parquet(parquet_path, index=False)
+        print(f"Saved scaled data to: {parquet_path}")
     
     return data, filtered_data
 
@@ -441,20 +507,42 @@ def load_gt_for_pytorch(
 data_filtered_1, scaling_info_1 = load_gt_for_pytorch(
     "../1_WikiDataNet/data/G_wiki.gt", 
     target_variable="Target_QC_aggcat",
-    scaling_method='minmax',
+    scaling_method='robust',
     verbose=True
 )
 print(f"Features: {data_filtered_1.x.shape}")
 print(f"Feature name: {scaling_info_1['feature_names']}")
 print(f"Target name: {scaling_info_1['target_name']}")
 
+# # Execute the data preparation
+# data_filtered_2, scaling_info_2 = load_gt_for_pytorch(
+#     "../1_WikiDataNet/data/G_wiki.gt", 
+#     target_variable="Target_QC_aggcat",
+#     scaling_method='power',
+#     verbose=True
+# )
+# print(f"Features: {data_filtered_1.x.shape}")
+# print(f"Feature name: {scaling_info_1['feature_names']}")
+# print(f"Target name: {scaling_info_1['target_name']}")
 
-data_filtered_2, scaling_info_2 = load_gt_for_pytorch(
+# Execute the data preparation
+data_filtered_3, scaling_info_3 = load_gt_for_pytorch(
     "../1_WikiDataNet/data/G_wiki.gt", 
-    target_variable="Target_QC_numlog",
-    scaling_method='minmax',
+    target_variable="Target_QC_aggcat",
+    scaling_method='log_robust',
     verbose=True
 )
-print(f"Features: {data_filtered_2.x.shape}")
-print(f"Feature name: {scaling_info_2['feature_names']}")
-print(f"Target name: {scaling_info_2['target_name']}")
+print(f"Features: {data_filtered_3.x.shape}")
+print(f"Feature name: {scaling_info_3['feature_names']}")
+print(f"Target name: {scaling_info_3['target_name']}")
+
+# Execute the data preparation
+data_filtered_4, scaling_info_4 = load_gt_for_pytorch(
+    "../1_WikiDataNet/data/G_wiki.gt", 
+    target_variable="Target_QC_aggcat",
+    scaling_method='quantile',
+    verbose=True
+)
+print(f"Features: {data_filtered_4.x.shape}")
+print(f"Feature name: {scaling_info_4['feature_names']}")
+print(f"Target name: {scaling_info_4['target_name']}")
