@@ -1,4 +1,6 @@
 # Ignore file types (wildcards)
-*.pt
+data/
 *.csv
+*.pt
 *.gt
+*.parquet
