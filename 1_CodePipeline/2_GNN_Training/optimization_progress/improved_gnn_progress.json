@@ -1,0 +1,25 @@
+{
+  "trials": [
+    {
+      "trial_num": 3,
+      "value": 0.7704521417617798,
+      "params": {
+        "hidden_dim": 32,
+        "num_layers": 2,
+        "dropout": 0.3944468676751244,
+        "lr": 0.003025262240617683,
+        "weight_decay": 8.488661639787345e-06,
+        "oversample_strategy": "boosted",
+        "min_samples_factor": 2
+      },
+      "timestamp": "2025-08-11T15:48:30.667196",
+      "is_best": true
+    }
+  ],
+  "metadata": {
+    "model_type": "improved_gnn",
+    "total_trials": 1,
+    "best_value": 0.7704521417617798,
+    "last_updated": "2025-08-11T15:48:30.667225"
+  }
+}

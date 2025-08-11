@@ -1,0 +1,99 @@
+2025-08-11 08:59:05,893 - INFO - Starting optimization for improved_gnn
+2025-08-11 08:59:05,894 - INFO - Log file: optimization_logs/improved_gnn_optimization_20250811_085905.log
+2025-08-11 08:59:05,896 - INFO - 🚀 Starting hyperparameter optimization for improved_gnn
+2025-08-11 08:59:05,896 - INFO - 📋 Configuration:
+2025-08-11 08:59:05,896 - INFO -    Task type: classification
+2025-08-11 08:59:05,896 - INFO -    Trials: 10
+2025-08-11 08:59:05,896 - INFO -    CV folds: 3
+2025-08-11 08:59:05,896 - INFO -    Epochs per trial: 50
+2025-08-11 08:59:05,896 - INFO -    Device: mps
+2025-08-11 08:59:05,896 - INFO -    Direction: maximize
+2025-08-11 08:59:05,899 - INFO - 📊 Class distribution:
+2025-08-11 08:59:05,899 - INFO -    Class 0: 267170 samples (70.3%)
+2025-08-11 08:59:05,899 - INFO -    Class 1: 110778 samples (29.2%)
+2025-08-11 08:59:05,899 - INFO -    Class 2: 1902 samples (0.5%)
+2025-08-11 08:59:05,900 - INFO - 🔍 Starting optimization with 10 trials...
+2025-08-11 08:59:05,900 - INFO - 🔄 Starting trial 0
+2025-08-11 08:59:05,900 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-11 08:59:05,903 - INFO -    📊 Parameters: {'hidden_dim': 64, 'num_layers': 4, 'dropout': 0.22524640380697503, 'lr': 0.0018845122804014942, 'weight_decay': 0.0008345803135801611, 'focal_alpha': 2.8381645148281978, 'focal_gamma': 2.173380125681451, 'oversample_strategy': 'boosted', 'min_samples_factor': 3}
+2025-08-11 08:59:05,903 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-11 09:11:20,796 - ERROR -    ❌ Trial 0 failed: Invalid buffer size: 6.80 GB
+2025-08-11 09:11:20,801 - INFO - 🎯 Trial 1/10 (10.0%): Score = -inf
+2025-08-11 09:11:20,801 - INFO - 🔄 Starting trial 1
+2025-08-11 09:11:20,801 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-11 09:11:20,814 - INFO -    📊 Parameters: {'hidden_dim': 256, 'num_layers': 2, 'dropout': 0.5264568153803025, 'lr': 0.008944975247383814, 'weight_decay': 0.0030624472837083956, 'cb_focal_beta': 0.9990223887751226, 'cb_focal_gamma': 2.2544529002672697, 'min_class_boost': 2.906100954358159, 'oversample_strategy': 'boosted', 'min_samples_factor': 3}
+2025-08-11 09:11:20,814 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-11 09:23:49,855 - ERROR -    ❌ Trial 1 failed: Invalid buffer size: 27.22 GB
+2025-08-11 09:23:49,914 - INFO - 🎯 Trial 2/10 (20.0%): Score = -inf
+2025-08-11 09:23:49,917 - INFO - 🔄 Starting trial 2
+2025-08-11 09:23:49,918 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-11 09:23:50,014 - INFO -    📊 Parameters: {'hidden_dim': 64, 'num_layers': 4, 'dropout': 0.5464243260044804, 'lr': 0.025220738326901745, 'weight_decay': 6.1157543557744495e-06, 'oversample_strategy': 'boosted', 'min_samples_factor': 3}
+2025-08-11 09:23:50,014 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-11 09:34:46,302 - ERROR -    ❌ Trial 2 failed: Invalid buffer size: 6.80 GB
+2025-08-11 09:34:46,311 - INFO - 🎯 Trial 3/10 (30.0%): Score = -inf
+2025-08-11 09:34:46,313 - INFO - 🔄 Starting trial 3
+2025-08-11 09:34:46,313 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-11 09:34:46,326 - INFO -    📊 Parameters: {'hidden_dim': 32, 'num_layers': 4, 'dropout': 0.6656464737262653, 'lr': 0.0008436499594844551, 'weight_decay': 0.002260490266226977, 'focal_alpha': 2.590817868084722, 'focal_gamma': 3.9978819559671193, 'oversample_strategy': 'balanced', 'min_samples_factor': 4}
+2025-08-11 09:34:46,327 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-11 09:47:08,529 - ERROR -    ❌ Trial 3 failed: MPS backend out of memory (MPS allocated: 6.41 GB, other allocations: 3.57 GB, max allowed: 9.07 GB). Tried to allocate 256 bytes on shared pool. Use PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 to disable upper limit for memory allocations (may cause system failure).
+2025-08-11 09:47:08,657 - INFO - 🎯 Trial 4/10 (40.0%): Score = -inf
+2025-08-11 09:47:08,676 - INFO - 🔄 Starting trial 4
+2025-08-11 09:47:08,683 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-11 09:47:08,850 - INFO -    📊 Parameters: {'hidden_dim': 128, 'num_layers': 3, 'dropout': 0.3258519133641776, 'lr': 0.015286977450016623, 'weight_decay': 4.726116779722513e-06, 'cb_focal_beta': 0.9998449392849832, 'cb_focal_gamma': 3.194223878901078, 'min_class_boost': 2.9880429683810883, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-11 09:47:08,861 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-11 09:58:13,717 - ERROR -    ❌ Trial 4 failed: Invalid buffer size: 13.61 GB
+2025-08-11 09:58:13,732 - INFO - 🎯 Trial 5/10 (50.0%): Score = -inf
+2025-08-11 09:58:13,734 - INFO - 📊 Progress Update - 5 trials completed
+2025-08-11 09:58:13,734 - INFO -    🏆 Best score so far: -inf (Trial #0)
+2025-08-11 09:58:13,735 - INFO -    ⏱️  ETA: 59.1 minutes remaining
+2025-08-11 09:58:13,736 - INFO - 🔄 Starting trial 5
+2025-08-11 09:58:13,736 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-11 09:58:13,761 - INFO -    📊 Parameters: {'hidden_dim': 32, 'num_layers': 2, 'dropout': 0.232073855167752, 'lr': 0.02296260281472392, 'weight_decay': 0.008545960803793452, 'cb_focal_beta': 0.9992456761946317, 'cb_focal_gamma': 3.609207073263796, 'min_class_boost': 2.330110046505111, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-11 09:58:13,762 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-11 10:08:58,352 - ERROR -    ❌ Trial 5 failed: MPS backend out of memory (MPS allocated: 6.41 GB, other allocations: 3.57 GB, max allowed: 9.07 GB). Tried to allocate 256 bytes on shared pool. Use PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 to disable upper limit for memory allocations (may cause system failure).
+2025-08-11 10:08:58,903 - INFO - 🎯 Trial 6/10 (60.0%): Score = -inf
+2025-08-11 10:08:58,941 - INFO - 🔄 Starting trial 6
+2025-08-11 10:08:58,951 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-11 10:08:59,107 - INFO -    📊 Parameters: {'hidden_dim': 256, 'num_layers': 4, 'dropout': 0.37381260853114506, 'lr': 0.00030722677923972414, 'weight_decay': 4.236431554936341e-05, 'focal_alpha': 1.0109298268720373, 'focal_gamma': 2.461170584831355, 'oversample_strategy': 'balanced', 'min_samples_factor': 3}
+2025-08-11 10:08:59,107 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-11 10:19:24,266 - ERROR -    ❌ Trial 6 failed: Invalid buffer size: 27.22 GB
+2025-08-11 10:19:24,389 - INFO - 🎯 Trial 7/10 (70.0%): Score = -inf
+2025-08-11 10:19:24,411 - INFO - 🔄 Starting trial 7
+2025-08-11 10:19:24,412 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-11 10:19:24,458 - INFO -    📊 Parameters: {'hidden_dim': 256, 'num_layers': 3, 'dropout': 0.6168523949689986, 'lr': 0.08092988334829097, 'weight_decay': 0.0003757910028397405, 'focal_alpha': 1.262993056169082, 'focal_gamma': 2.140552461803507, 'oversample_strategy': 'balanced', 'min_samples_factor': 2}
+2025-08-11 10:19:24,458 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-11 10:32:18,740 - ERROR -    ❌ Trial 7 failed: Invalid buffer size: 27.22 GB
+2025-08-11 10:32:18,928 - INFO - 🎯 Trial 8/10 (80.0%): Score = -inf
+2025-08-11 10:32:18,972 - INFO - 🔄 Starting trial 8
+2025-08-11 10:32:18,972 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-11 10:32:19,051 - INFO -    📊 Parameters: {'hidden_dim': 256, 'num_layers': 3, 'dropout': 0.5619458522078471, 'lr': 0.0004329568317842033, 'weight_decay': 2.2767934224916683e-06, 'focal_alpha': 2.563028845252588, 'focal_gamma': 3.2610841203563585, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-11 10:32:19,051 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-11 10:48:36,864 - ERROR -    ❌ Trial 8 failed: Invalid buffer size: 27.22 GB
+2025-08-11 10:48:36,992 - INFO - 🎯 Trial 9/10 (90.0%): Score = -inf
+2025-08-11 10:48:37,022 - INFO - 🔄 Starting trial 9
+2025-08-11 10:48:37,022 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-11 10:48:37,146 - INFO -    📊 Parameters: {'hidden_dim': 32, 'num_layers': 2, 'dropout': 0.6352350746258365, 'lr': 0.001966783378677684, 'weight_decay': 1.1637934625185505e-05, 'cb_focal_beta': 0.9994566847450341, 'cb_focal_gamma': 3.099859711556687, 'min_class_boost': 3.9760212694312997, 'oversample_strategy': 'balanced', 'min_samples_factor': 4}
+2025-08-11 10:48:37,146 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-11 11:10:40,480 - ERROR -    ❌ Trial 9 failed: MPS backend out of memory (MPS allocated: 2.02 GB, other allocations: 6.90 GB, max allowed: 9.07 GB). Tried to allocate 3.40 GB on private pool. Use PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 to disable upper limit for memory allocations (may cause system failure).
+2025-08-11 11:10:40,581 - INFO - 🎯 Trial 10/10 (100.0%): Score = -inf
+2025-08-11 11:10:40,603 - INFO - 📊 Progress Update - 10 trials completed
+2025-08-11 11:10:40,603 - INFO -    🏆 Best score so far: -inf (Trial #0)
+2025-08-11 11:10:40,605 - INFO -    ⏱️  ETA: 0.0 minutes remaining
+2025-08-11 11:10:40,606 - INFO - 
+🎉 OPTIMIZATION COMPLETED!
+2025-08-11 11:10:40,606 - INFO - ============================================================
+2025-08-11 11:10:40,606 - INFO - 📋 Summary:
+2025-08-11 11:10:40,607 - INFO -    Total trials: 10
+2025-08-11 11:10:40,607 - INFO -    Best trial: #0
+2025-08-11 11:10:40,607 - INFO -    Best value: -inf
+2025-08-11 11:10:40,607 - INFO - 🏆 Best parameters:
+2025-08-11 11:10:40,607 - INFO -    hidden_dim: 64
+2025-08-11 11:10:40,607 - INFO -    num_layers: 4
+2025-08-11 11:10:40,607 - INFO -    dropout: 0.22524640380697503
+2025-08-11 11:10:40,607 - INFO -    lr: 0.0018845122804014942
+2025-08-11 11:10:40,607 - INFO -    weight_decay: 0.0008345803135801611
+2025-08-11 11:10:40,607 - INFO -    loss_type: focal
+2025-08-11 11:10:40,607 - INFO -    focal_alpha: 2.8381645148281978
+2025-08-11 11:10:40,607 - INFO -    focal_gamma: 2.173380125681451
+2025-08-11 11:10:40,607 - INFO -    oversample_strategy: boosted
+2025-08-11 11:10:40,607 - INFO -    min_samples_factor: 3

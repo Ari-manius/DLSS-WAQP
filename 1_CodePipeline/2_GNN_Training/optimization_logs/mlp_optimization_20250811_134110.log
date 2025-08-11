@@ -1,0 +1,19 @@
+2025-08-11 13:41:10,628 - INFO - Starting optimization for mlp
+2025-08-11 13:41:10,628 - INFO - Log file: optimization_logs/mlp_optimization_20250811_134110.log
+2025-08-11 13:41:10,630 - INFO - 🚀 Starting hyperparameter optimization for mlp
+2025-08-11 13:41:10,630 - INFO - 📋 Configuration:
+2025-08-11 13:41:10,630 - INFO -    Task type: classification
+2025-08-11 13:41:10,630 - INFO -    Trials: 5
+2025-08-11 13:41:10,630 - INFO -    CV folds: 3
+2025-08-11 13:41:10,630 - INFO -    Epochs per trial: 3
+2025-08-11 13:41:10,630 - INFO -    Device: cpu
+2025-08-11 13:41:10,630 - INFO -    Direction: maximize
+2025-08-11 13:41:10,632 - INFO - 📊 Class distribution:
+2025-08-11 13:41:10,632 - INFO -    Class 0: 267170 samples (70.3%)
+2025-08-11 13:41:10,632 - INFO -    Class 1: 110778 samples (29.2%)
+2025-08-11 13:41:10,632 - INFO -    Class 2: 1902 samples (0.5%)
+2025-08-11 13:41:10,633 - INFO - 🔍 Starting optimization with 5 trials...
+2025-08-11 13:41:10,633 - INFO - 🔄 Starting trial 0
+2025-08-11 13:41:10,633 - INFO -    Device: cpu, Task: classification, CV folds: 3
+2025-08-11 13:41:10,636 - INFO -    📊 Parameters: {'hidden_dim': 64, 'num_layers': 3, 'dropout': 0.4336209027672442, 'lr': 0.05078845203206949, 'weight_decay': 2.506548862168346e-05, 'oversample_strategy': 'boosted', 'min_samples_factor': 3}
+2025-08-11 13:41:10,636 - INFO -    🔬 Running 3-fold cross-validation...

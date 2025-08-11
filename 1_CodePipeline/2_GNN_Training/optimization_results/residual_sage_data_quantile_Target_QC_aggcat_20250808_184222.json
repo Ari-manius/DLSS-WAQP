@@ -1,0 +1,19 @@
+{
+  "best_params": {
+    "hidden_dim": 256,
+    "num_layers": 2,
+    "dropout": 0.6996576560133354,
+    "lr": 0.03957428057554672,
+    "weight_decay": 0.001239637570978006,
+    "loss_type": "focal",
+    "focal_alpha": 2.1601828758312887,
+    "focal_gamma": 3.3804748160531926,
+    "oversample_strategy": "balanced",
+    "min_samples_factor": 2
+  },
+  "best_value": -Infinity,
+  "n_trials": 5,
+  "model_type": "residual_sage",
+  "data_file": "data_quantile_Target_QC_aggcat",
+  "timestamp": "20250808_184222"
+}

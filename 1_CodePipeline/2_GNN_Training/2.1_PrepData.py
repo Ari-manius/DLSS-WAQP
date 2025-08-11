@@ -504,15 +504,15 @@ def load_gt_for_pytorch(
 
 
 # Execute the data preparation
-data_filtered_1, scaling_info_1 = load_gt_for_pytorch(
-    "../1_WikiDataNet/data/G_wiki.gt", 
-    target_variable="Target_QC_aggcat",
-    scaling_method='robust',
-    verbose=True
-)
-print(f"Features: {data_filtered_1.x.shape}")
-print(f"Feature name: {scaling_info_1['feature_names']}")
-print(f"Target name: {scaling_info_1['target_name']}")
+# data_filtered_1, scaling_info_1 = load_gt_for_pytorch(
+#     "../1_WikiDataNet/data/G_wiki.gt", 
+#     target_variable="Target_QC_aggcat",
+#     scaling_method='robust',
+#     verbose=True
+# )
+# print(f"Features: {data_filtered_1.x.shape}")
+# print(f"Feature name: {scaling_info_1['feature_names']}")
+# print(f"Target name: {scaling_info_1['target_name']}")
 
 # # Execute the data preparation
 # data_filtered_2, scaling_info_2 = load_gt_for_pytorch(

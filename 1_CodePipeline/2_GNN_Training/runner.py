@@ -29,18 +29,54 @@ def main():
     print("Starting GNN Training Pipeline")
     print("=" * 60)
     
-    # Step 1: Data Preparation
-    print("\nStep 1: Preparing data...")
-    if not run_command("python3 2.1_PrepData.py"):
-        print("Data preparation failed. Stopping pipeline.")
-        sys.exit(1)
+    # # Step 1: Data Preparation
+    # print("\nStep 1: Preparing data...")
+    # if not run_command("python3 2.1_PrepData.py"):
+    #     print("Data preparation failed. Stopping pipeline.")
+    #     sys.exit(1)
     
     # Step 2: Training commands
     training_commands = [
-        "python3 2.2_GNN_GCN_Reg.py --data_file data_standard_Target_QC_numlog",
-        "python3 2.2_GNN_Sage_Reg.py --data_file data_standard_Target_QC_numlog",
-        "python3 2.2_GNN_GCN_Clas.py --data_file data_standard_Target_QC_aggcat",
-        "python3 2.2_GNN_Sage_Clas.py --data_file data_standard_Target_QC_aggcat"
+    "python3 2.2_Enhanced_Training.py \
+        --data_file data_quantile_Target_QC_aggcat \
+        --model_type improved_gnn \
+        --loss_type class_balanced_focal \
+        --use_graphsaint \
+        --batch_size 8192 \
+        --walk_length 2 \
+        --num_steps 8 \
+        --epochs 100",
+    "python3 2.2_Enhanced_Training.py \
+        --data_file data_quantile_Target_QC_aggcat \
+        --model_type residual_gcn \
+        --loss_type class_balanced_focal \
+        --use_graphsaint \
+        --batch_size 8192 \
+        --walk_length 2 \
+        --num_steps 8 \
+        --epochs 100",
+    "python3 2.2_Enhanced_Training.py \
+        --data_file data_quantile_Target_QC_aggcat \
+        --model_type residual_sage \
+        --loss_type class_balanced_focal \
+        --use_graphsaint \
+        --batch_size 8192 \
+        --walk_length 2 \
+        --num_steps 8 \
+        --epochs 100",
+    "python3 2.2_Enhanced_Training.py \
+        --data_file data_quantile_Target_QC_aggcat \
+        --model_type gat \
+        --loss_type class_balanced_focal \
+        --use_graphsaint \
+        --batch_size 2048 \
+        --walk_length 2 \
+        --num_steps 8 \
+        --epochs 100",
+    "python3 2.2_Enhanced_Training.py \
+        --data_file data_quantile_Target_QC_aggcat \
+        --model_type mlp \
+        --epochs 100",    
     ]
     
     successful_runs = 0
@@ -66,3 +102,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

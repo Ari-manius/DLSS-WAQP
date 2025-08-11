@@ -40,17 +40,17 @@ class FocalLoss(nn.Module):
 
 class ClassBalancedFocalLoss(nn.Module):
     """
-    Class-Balanced Focal Loss that automatically computes alpha weights 
-    based on effective number of samples.
+    Enhanced Class-Balanced Focal Loss with improved smallest class handling.
     
     Paper: "Class-Balanced Loss Based on Effective Number of Samples" 
     (https://arxiv.org/abs/1901.05555)
     """
-    def __init__(self, beta=0.9999, gamma=2.0, reduction='mean'):
+    def __init__(self, beta=0.9999, gamma=2.0, reduction='mean', min_class_boost=2.0):
         super(ClassBalancedFocalLoss, self).__init__()
         self.beta = beta
         self.gamma = gamma
         self.reduction = reduction
+        self.min_class_boost = min_class_boost  # Extra boost for smallest class
 
     def forward(self, inputs, targets, samples_per_class=None):
         """
@@ -67,7 +67,14 @@ class ClassBalancedFocalLoss(nn.Module):
 
         # Calculate effective number of samples
         effective_num = 1.0 - torch.pow(self.beta, samples_per_class)
+        effective_num = torch.clamp(effective_num, min=1e-7)  # Avoid division by zero
         weights = (1.0 - self.beta) / effective_num
+        
+        # Boost the smallest class(es) further
+        min_samples = samples_per_class[samples_per_class > 0].min()
+        smallest_class_mask = (samples_per_class == min_samples) & (samples_per_class > 0)
+        weights[smallest_class_mask] *= self.min_class_boost
+        
         weights = weights / weights.sum() * len(weights)  # Normalize
 
         # Apply focal loss with class balancing
@@ -171,3 +178,58 @@ def compute_focal_alpha(targets, method='inverse_freq'):
             alpha[class_idx] = min_count / counts[i]
             
     return alpha
+
+
+def smart_oversample_indices(train_indices, train_labels, strategy='balanced', min_samples_factor=3):
+    """
+    Create oversampling indices with focus on minority classes.
+    
+    Args:
+        train_indices: tensor of training node indices
+        train_labels: tensor of training labels
+        strategy: 'balanced' (equal samples) or 'boosted' (boost minority more)
+        min_samples_factor: minimum factor to multiply smallest class
+    
+    Returns:
+        tensor of oversampled indices
+    """
+    unique_classes, class_counts = torch.unique(train_labels, return_counts=True)
+    
+    if strategy == 'balanced':
+        target_count = class_counts.max()
+    elif strategy == 'boosted':
+        # Boost smallest classes more aggressively
+        min_count = class_counts.min()
+        target_count = min(class_counts.max(), min_count * min_samples_factor)
+    
+    oversampled_indices = []
+    
+    for class_idx in unique_classes:
+        class_mask = train_labels == class_idx
+        class_indices = train_indices[class_mask]
+        current_count = len(class_indices)
+        
+        if current_count == 0:
+            continue
+            
+        # Determine how many samples we need
+        if strategy == 'balanced':
+            needed_samples = target_count
+        else:  # boosted
+            # Give smallest classes more samples
+            boost_factor = min_count / current_count if current_count > 0 else 1
+            needed_samples = int(current_count * max(1, boost_factor * min_samples_factor))
+            needed_samples = min(needed_samples, target_count)
+        
+        # Generate indices with repetition
+        n_repeats = needed_samples // current_count
+        remainder = needed_samples % current_count
+        
+        repeated = class_indices.repeat(n_repeats)
+        if remainder > 0:
+            perm_indices = torch.randperm(current_count)[:remainder]
+            repeated = torch.cat([repeated, class_indices[perm_indices]])
+        
+        oversampled_indices.append(repeated)
+    
+    return torch.cat(oversampled_indices)

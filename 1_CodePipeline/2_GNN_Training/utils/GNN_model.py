@@ -419,3 +419,69 @@ class ImprovedGNN(torch.nn.Module):
         x = self.output_proj(x)
         
         return x
+
+
+class MLPBaseline(torch.nn.Module):
+    """
+    Multi-Layer Perceptron (MLP) baseline model.
+    Uses only node features without considering graph structure.
+    Serves as a benchmark to evaluate the benefit of graph information.
+    """
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers=3, dropout=0.4):
+        super(MLPBaseline, self).__init__()
+        
+        self.num_layers = num_layers
+        self.dropout = dropout
+        
+        # Input preprocessing
+        self.input_norm = LayerNorm(input_dim)
+        self.input_proj = nn.Linear(input_dim, hidden_dim)
+        
+        # Hidden layers
+        self.layers = nn.ModuleList()
+        self.norms = nn.ModuleList()
+        
+        for i in range(num_layers - 1):
+            self.layers.append(nn.Linear(hidden_dim, hidden_dim))
+            self.norms.append(LayerNorm(hidden_dim))
+        
+        # Output layer
+        self.output_norm = LayerNorm(hidden_dim)
+        self.output_proj = nn.Linear(hidden_dim, output_dim)
+        
+        # Initialize weights
+        self.apply(self._init_weights)
+    
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            torch.nn.init.xavier_uniform_(module.weight)
+            if module.bias is not None:
+                module.bias.data.zero_()
+    
+    def forward(self, data):
+        # Only use node features, ignore graph structure
+        x = data.x
+        
+        # Input preprocessing
+        x = self.input_norm(x)
+        x = self.input_proj(x)
+        x = F.gelu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        
+        # Hidden layers with residual connections
+        for i in range(len(self.layers)):
+            identity = x
+            
+            x = self.layers[i](x)
+            x = self.norms[i](x)
+            x = F.gelu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+            
+            # Residual connection
+            x = x + identity
+        
+        # Output
+        x = self.output_norm(x)
+        x = self.output_proj(x)
+        
+        return x

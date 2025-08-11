@@ -156,6 +156,14 @@ def cross_validate_model(model_class, data, model_params, train_params,
     Returns:
         Dictionary with CV results
     """
+    # Force clean environment variable to prevent MPS memory issues
+    import os
+    if 'PYTORCH_MPS_HIGH_WATERMARK_RATIO' in os.environ:
+        del os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO']
+    
+    # Set safe memory limits for MPS
+    if device.type == 'mps':
+        os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = '0.7'
     # Get splits
     splits = graph_aware_split(data, n_splits=n_splits, test_size=test_size, 
                               random_state=random_state)
@@ -254,6 +262,15 @@ def cross_validate_model(model_class, data, model_params, train_params,
                 }
         
         fold_results.append(fold_result)
+        
+        # Memory cleanup after each fold for MPS device
+        if device.type == 'mps':
+            torch.mps.empty_cache()
+            del model, optimizer
+            import gc
+            gc.collect()
+        elif device.type == 'cuda':
+            torch.cuda.empty_cache()
         
         if verbose:
             if len(fold_data.y.unique()) > 1:

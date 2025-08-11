@@ -6,6 +6,8 @@ import scipy as sp
 from concurrent.futures import ThreadPoolExecutor
 import time
 from datetime import datetime
+from scipy.sparse.linalg import eigsh
+
 
 def log_progress(message):
     timestamp = datetime.now().strftime("%H:%M:%S")
@@ -132,23 +134,18 @@ df_wikinetmetrics = pl.DataFrame({
 log_progress("[5/8] Computing Spectral Embedding...")
 
 adj_sparse = gt.adjacency(G_tool, weight=None)
-
-# Make symmetric for better embedding stability
 print("Making adjacency matrix symmetric...")
 adj_symmetric = adj_sparse + adj_sparse.T
 
-# Compute normalized Laplacian
 print("Computing normalized Laplacian...")
 degrees = np.array(adj_symmetric.sum(axis=1)).flatten()
-degrees = np.maximum(degrees, 1e-8)  # Avoid division by zero
+degrees = np.maximum(degrees, 1e-8)
 D_inv_sqrt = sp.sparse.diags(1.0 / np.sqrt(degrees), format='csr')
 L_norm = sp.sparse.eye(adj_symmetric.shape[0]) - D_inv_sqrt @ adj_symmetric @ D_inv_sqrt
 
-# Use eigenvectors of Laplacian (skip smallest eigenvalue)
-print("Computing SVD for spectral embedding...")
-U, s, Vt = randomized_svd(L_norm, n_components=6, n_iter=500, random_state=42)
-embedding_full = U[:, -5:]  # Use last 5 eigenvectors (largest eigenvalues)
-print(f"Embedding shape: {embedding_full.shape}, range: [{embedding_full.min():.4f}, {embedding_full.max():.4f}]")
+print("Computing smallest eigenvalues...")
+eigenvals, eigenvecs = eigsh(L_norm, k=9, which='SM', maxiter=500)
+embedding_full = eigenvecs[:, 1:]  
 
 df_wikinetmetrics = df_wikinetmetrics.with_columns([
     pl.Series("spectral_embedding_1", embedding_full[:, 0]),
@@ -156,7 +153,111 @@ df_wikinetmetrics = df_wikinetmetrics.with_columns([
     pl.Series("spectral_embedding_3", embedding_full[:, 2]),
     pl.Series("spectral_embedding_4", embedding_full[:, 3]),
     pl.Series("spectral_embedding_5", embedding_full[:, 4]),
+    pl.Series("spectral_embedding_6", embedding_full[:, 5]),
+    pl.Series("spectral_embedding_7", embedding_full[:, 6]),
+    pl.Series("spectral_embedding_8", embedding_full[:, 7]),
 ])
+
+def compute_transition_features_efficiently(G):
+    entropy_features = []
+    max_prob_features = []
+    concentration_features = []
+    
+    for v in G.vertices():
+        out_degree = v.out_degree()
+        
+        if out_degree > 0:
+            # Uniform transition probabilities (each neighbor equally likely)
+            prob = 1.0 / out_degree
+            
+            # Entropy: -sum(p * log(p))
+            entropy = -out_degree * prob * np.log(prob)
+            
+            # Max probability (same for all in uniform case)
+            max_prob = prob
+            
+            # Concentration: sum(p^2) - higher means more concentrated
+            concentration = out_degree * (prob ** 2)
+            
+        else:
+            entropy = 0
+            max_prob = 0
+            concentration = 0
+            
+        entropy_features.append(entropy)
+        max_prob_features.append(max_prob)
+        concentration_features.append(concentration)
+    
+    return entropy_features, max_prob_features, concentration_features
+
+# Compute all features
+entropy_feat, max_prob_feat, concentration_feat = compute_transition_features_efficiently(G_tool)
+
+# Add to dataframe
+df_wikinetmetrics = df_wikinetmetrics.with_columns([
+    pl.Series("transition_entropy", entropy_feat),
+    pl.Series("transition_max_prob", max_prob_feat),
+    pl.Series("transition_concentration", concentration_feat)
+])
+
+def compute_modularity_features_efficiently(G):
+    diagonal_features = []
+    row_sum_features = []
+    positive_count_features = []
+    
+    # Get all degrees once
+    vertices = list(G.vertices())
+    out_degrees = G.get_out_degrees(vertices)
+    in_degrees = G.get_in_degrees(vertices)
+    total_edges = G.num_edges()
+    
+    for i, v in enumerate(vertices):
+        k_i_out = out_degrees[i]
+        k_i_in = in_degrees[i]
+        
+        # Modularity diagonal: A_ii - (k_i_out * k_i_in) / (2m)
+        # A_ii is 0 for simple graphs (no self-loops)
+        has_self_loop = 0  # Check if vertex has self-loop
+        for e in v.out_edges():
+            if e.target() == v:
+                has_self_loop = 1
+                break
+                
+        diagonal = has_self_loop - (k_i_out * k_i_in) / (2 * total_edges)
+        
+        # Row sum calculation: sum over all j of [A_ij - (k_i_out * k_j_in) / (2m)]
+        # = degree_out - (k_i_out * sum(k_j_in)) / (2m)
+        # = degree_out - (k_i_out * total_in_degree) / (2m)
+        # = degree_out - (k_i_out * total_edges) / (2m)  [since sum of in-degrees = total edges]
+        # = degree_out - k_i_out / 2
+        row_sum = k_i_out - (k_i_out * total_edges) / (2 * total_edges)
+        row_sum = k_i_out - k_i_out / 2  # Simplifies to k_i_out / 2
+        
+        # Positive connections: count neighbors j where A_ij - (k_i * k_j) / (2m) > 0
+        positive_count = 0
+        for e in v.out_edges():
+            j = int(e.target())
+            k_j_in = in_degrees[j]
+            expected = (k_i_out * k_j_in) / (2 * total_edges)
+            actual = 1  # There's an edge
+            if actual > expected:
+                positive_count += 1
+                
+        diagonal_features.append(diagonal)
+        row_sum_features.append(row_sum)
+        positive_count_features.append(positive_count)
+    
+    return diagonal_features, row_sum_features, positive_count_features
+
+# Compute modularity features
+mod_diagonal, mod_row_sum, mod_positive = compute_modularity_features_efficiently(G_tool)
+
+# Add to dataframe
+df_wikinetmetrics = df_wikinetmetrics.with_columns([
+    pl.Series("modularity_row_sum", mod_row_sum), 
+    pl.Series("modularity_positive_connections", mod_positive)
+])
+
 
 ### Remove isolated nodes (degree < 1)
 log_progress("[6/8] Filtering Network...")

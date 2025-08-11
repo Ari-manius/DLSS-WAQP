@@ -1,0 +1,19 @@
+2025-08-11 11:10:47,137 - INFO - Starting optimization for residual_gcn
+2025-08-11 11:10:47,137 - INFO - Log file: optimization_logs/residual_gcn_optimization_20250811_111047.log
+2025-08-11 11:10:47,139 - INFO - 🚀 Starting hyperparameter optimization for residual_gcn
+2025-08-11 11:10:47,139 - INFO - 📋 Configuration:
+2025-08-11 11:10:47,139 - INFO -    Task type: classification
+2025-08-11 11:10:47,139 - INFO -    Trials: 10
+2025-08-11 11:10:47,139 - INFO -    CV folds: 3
+2025-08-11 11:10:47,139 - INFO -    Epochs per trial: 50
+2025-08-11 11:10:47,139 - INFO -    Device: mps
+2025-08-11 11:10:47,139 - INFO -    Direction: maximize
+2025-08-11 11:10:47,141 - INFO - 📊 Class distribution:
+2025-08-11 11:10:47,141 - INFO -    Class 0: 267170 samples (70.3%)
+2025-08-11 11:10:47,141 - INFO -    Class 1: 110778 samples (29.2%)
+2025-08-11 11:10:47,141 - INFO -    Class 2: 1902 samples (0.5%)
+2025-08-11 11:10:47,141 - INFO - 🔍 Starting optimization with 10 trials...
+2025-08-11 11:10:47,141 - INFO - 🔄 Starting trial 0
+2025-08-11 11:10:47,141 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-11 11:10:47,144 - INFO -    📊 Parameters: {'hidden_dim': 256, 'num_layers': 3, 'dropout': 0.3884599918243191, 'lr': 0.016967141973378314, 'weight_decay': 0.0038277310883363448, 'cb_focal_beta': 0.9993996230489197, 'cb_focal_gamma': 2.249508582752326, 'min_class_boost': 2.100587518281752, 'oversample_strategy': 'balanced', 'min_samples_factor': 2}
+2025-08-11 11:10:47,144 - INFO -    🔬 Running 3-fold cross-validation...

@@ -1,0 +1,66 @@
+2025-08-08 18:42:22,169 - INFO - Starting optimization for residual_sage
+2025-08-08 18:42:22,169 - INFO - Log file: optimization_logs/residual_sage_optimization_20250808_184222.log
+2025-08-08 18:42:22,171 - INFO - 🚀 Starting hyperparameter optimization for residual_sage
+2025-08-08 18:42:22,171 - INFO - 📋 Configuration:
+2025-08-08 18:42:22,171 - INFO -    Task type: classification
+2025-08-08 18:42:22,171 - INFO -    Trials: 5
+2025-08-08 18:42:22,171 - INFO -    CV folds: 1
+2025-08-08 18:42:22,171 - INFO -    Epochs per trial: 50
+2025-08-08 18:42:22,171 - INFO -    Device: mps
+2025-08-08 18:42:22,171 - INFO -    Direction: maximize
+2025-08-08 18:42:22,172 - INFO - 📊 Class distribution:
+2025-08-08 18:42:22,172 - INFO -    Class 0: 267170 samples (70.3%)
+2025-08-08 18:42:22,172 - INFO -    Class 1: 110778 samples (29.2%)
+2025-08-08 18:42:22,173 - INFO -    Class 2: 1902 samples (0.5%)
+2025-08-08 18:42:22,173 - INFO - 🔍 Starting optimization with 5 trials...
+2025-08-08 18:42:22,173 - INFO - 🔄 Starting trial 0
+2025-08-08 18:42:22,173 - INFO -    Device: mps, Task: classification, CV folds: 1
+2025-08-08 18:42:22,175 - INFO -    📊 Parameters: {'hidden_dim': 256, 'num_layers': 2, 'dropout': 0.6996576560133354, 'lr': 0.03957428057554672, 'weight_decay': 0.001239637570978006, 'focal_alpha': 2.1601828758312887, 'focal_gamma': 3.3804748160531926, 'oversample_strategy': 'balanced', 'min_samples_factor': 2}
+2025-08-08 18:42:22,175 - INFO -    🔬 Running 1-fold cross-validation...
+2025-08-08 18:42:22,228 - ERROR -    ❌ Trial 0 failed: k-fold cross-validation requires at least one train/test split by setting n_splits=2 or more, got n_splits=1.
+2025-08-08 18:42:22,229 - INFO - 🎯 Trial 1/5 (20.0%): Score = -inf
+2025-08-08 18:42:22,229 - INFO - 🔄 Starting trial 1
+2025-08-08 18:42:22,229 - INFO -    Device: mps, Task: classification, CV folds: 1
+2025-08-08 18:42:22,231 - INFO -    📊 Parameters: {'hidden_dim': 256, 'num_layers': 4, 'dropout': 0.16780812058691452, 'lr': 0.014957965802670347, 'weight_decay': 0.0001474440810203947, 'cb_focal_beta': 0.9998892640701547, 'cb_focal_gamma': 2.3329189396698795, 'min_class_boost': 3.795981757137711, 'oversample_strategy': 'balanced', 'min_samples_factor': 2}
+2025-08-08 18:42:22,231 - INFO -    🔬 Running 1-fold cross-validation...
+2025-08-08 18:42:22,278 - ERROR -    ❌ Trial 1 failed: k-fold cross-validation requires at least one train/test split by setting n_splits=2 or more, got n_splits=1.
+2025-08-08 18:42:22,279 - INFO - 🎯 Trial 2/5 (40.0%): Score = -inf
+2025-08-08 18:42:22,279 - INFO - 🔄 Starting trial 2
+2025-08-08 18:42:22,279 - INFO -    Device: mps, Task: classification, CV folds: 1
+2025-08-08 18:42:22,281 - INFO -    📊 Parameters: {'hidden_dim': 64, 'num_layers': 2, 'dropout': 0.1871063967854406, 'lr': 0.002824382919743023, 'weight_decay': 0.00023736689304726917, 'focal_alpha': 1.6718196080058527, 'focal_gamma': 2.0576561005079688, 'oversample_strategy': 'balanced', 'min_samples_factor': 4}
+2025-08-08 18:42:22,281 - INFO -    🔬 Running 1-fold cross-validation...
+2025-08-08 18:42:22,327 - ERROR -    ❌ Trial 2 failed: k-fold cross-validation requires at least one train/test split by setting n_splits=2 or more, got n_splits=1.
+2025-08-08 18:42:22,327 - INFO - 🎯 Trial 3/5 (60.0%): Score = -inf
+2025-08-08 18:42:22,327 - INFO - 🔄 Starting trial 3
+2025-08-08 18:42:22,327 - INFO -    Device: mps, Task: classification, CV folds: 1
+2025-08-08 18:42:22,329 - INFO -    📊 Parameters: {'hidden_dim': 32, 'num_layers': 4, 'dropout': 0.26003255343596515, 'lr': 0.06275663139948419, 'weight_decay': 1.384727078582968e-06, 'focal_alpha': 2.603041764707777, 'focal_gamma': 2.5934552404150297, 'oversample_strategy': 'boosted', 'min_samples_factor': 3}
+2025-08-08 18:42:22,329 - INFO -    🔬 Running 1-fold cross-validation...
+2025-08-08 18:42:22,377 - ERROR -    ❌ Trial 3 failed: k-fold cross-validation requires at least one train/test split by setting n_splits=2 or more, got n_splits=1.
+2025-08-08 18:42:22,377 - INFO - 🎯 Trial 4/5 (80.0%): Score = -inf
+2025-08-08 18:42:22,378 - INFO - 🔄 Starting trial 4
+2025-08-08 18:42:22,378 - INFO -    Device: mps, Task: classification, CV folds: 1
+2025-08-08 18:42:22,380 - INFO -    📊 Parameters: {'hidden_dim': 64, 'num_layers': 3, 'dropout': 0.5607762324577037, 'lr': 0.00013370915563631257, 'weight_decay': 0.0036051077132600567, 'cb_focal_beta': 0.9996313105607512, 'cb_focal_gamma': 3.691526464047623, 'min_class_boost': 2.6568197390597357, 'oversample_strategy': 'balanced', 'min_samples_factor': 3}
+2025-08-08 18:42:22,380 - INFO -    🔬 Running 1-fold cross-validation...
+2025-08-08 18:42:22,431 - ERROR -    ❌ Trial 4 failed: k-fold cross-validation requires at least one train/test split by setting n_splits=2 or more, got n_splits=1.
+2025-08-08 18:42:22,432 - INFO - 🎯 Trial 5/5 (100.0%): Score = -inf
+2025-08-08 18:42:22,433 - INFO - 📊 Progress Update - 5 trials completed
+2025-08-08 18:42:22,433 - INFO -    🏆 Best score so far: -inf (Trial #0)
+2025-08-08 18:42:22,434 - INFO -    ⏱️  ETA: 0.0 minutes remaining
+2025-08-08 18:42:22,434 - INFO - 
+🎉 OPTIMIZATION COMPLETED!
+2025-08-08 18:42:22,434 - INFO - ============================================================
+2025-08-08 18:42:22,434 - INFO - 📋 Summary:
+2025-08-08 18:42:22,434 - INFO -    Total trials: 5
+2025-08-08 18:42:22,434 - INFO -    Best trial: #0
+2025-08-08 18:42:22,434 - INFO -    Best value: -inf
+2025-08-08 18:42:22,434 - INFO - 🏆 Best parameters:
+2025-08-08 18:42:22,434 - INFO -    hidden_dim: 256
+2025-08-08 18:42:22,434 - INFO -    num_layers: 2
+2025-08-08 18:42:22,434 - INFO -    dropout: 0.6996576560133354
+2025-08-08 18:42:22,434 - INFO -    lr: 0.03957428057554672
+2025-08-08 18:42:22,434 - INFO -    weight_decay: 0.001239637570978006
+2025-08-08 18:42:22,434 - INFO -    loss_type: focal
+2025-08-08 18:42:22,434 - INFO -    focal_alpha: 2.1601828758312887
+2025-08-08 18:42:22,435 - INFO -    focal_gamma: 3.3804748160531926
+2025-08-08 18:42:22,435 - INFO -    oversample_strategy: balanced
+2025-08-08 18:42:22,435 - INFO -    min_samples_factor: 2
