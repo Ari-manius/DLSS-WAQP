@@ -67,7 +67,7 @@ def calculate_hits():
 
 def calculate_clustering():
     log_progress("  Computing Clustering...")
-    return gt.local_clustering(G_tool)
+    return gt.local_clustering(G_tool, undirected=False)
 
 def calculate_core_numbers():
     log_progress("  Computing Core Numbers...")
@@ -98,21 +98,21 @@ out_degrees = G_tool.get_out_degrees(vertices)
 # Parallelize independent calculations
 with ThreadPoolExecutor(max_workers=2) as executor:
     pagerank_future = executor.submit(calculate_pagerank)
-    katz_future = executor.submit(calculate_katz)
+    #katz_future = executor.submit(calculate_katz)
     hits_future = executor.submit(calculate_hits)
     clustering_future = executor.submit(calculate_clustering)
     core_future = executor.submit(calculate_core_numbers)
-    #betweenness_future = executor.submit(calculate_betweenness)
-    #reciprocity_future = executor.submit(calculate_node_reciprocity)
+    betweenness_future = executor.submit(calculate_betweenness)
+    reciprocity_future = executor.submit(calculate_node_reciprocity)
     
     # Collect results
     pagerank = pagerank_future.result()
-    katz = katz_future.result()
+    #katz = katz_future.result()
     hits = hits_future.result()
     clustering = clustering_future.result()
     core_numbers = core_future.result()
-    #reciprocity = reciprocity_future.result()
-    #betweenness = betweenness_future.result()
+    reciprocity = reciprocity_future.result()
+    betweenness = betweenness_future.result()
 
 eigenvalue, authority_scores, hub_scores = hits  # HITS returns (eigenvalue, authority, hub)
 
@@ -121,13 +121,13 @@ df_wikinetmetrics = pl.DataFrame({
     'degree_in_centrality': in_degrees,
     'degree_out_centrality': out_degrees,
     'pagerank': pagerank.a,
-    'katz': katz.a,
+    #'katz': katz.a,
     'hub': hub_scores.a,
     'authority': authority_scores.a,
     'clustering': clustering.a,
     'core_numbers': core_numbers.a,
-    #'reciprocity': reciprocity,
-    #'betweenness': betweenness.a,
+    'reciprocity': reciprocity,
+    'betweenness': betweenness.a,
 })
 
 ### Spectral Embedding
@@ -195,9 +195,9 @@ entropy_feat, max_prob_feat, concentration_feat = compute_transition_features_ef
 
 # Add to dataframe
 df_wikinetmetrics = df_wikinetmetrics.with_columns([
-    pl.Series("transition_entropy", entropy_feat),
+    #pl.Series("transition_entropy", entropy_feat), #removed due to Correlation Evaluation
     pl.Series("transition_max_prob", max_prob_feat),
-    pl.Series("transition_concentration", concentration_feat)
+    #pl.Series("transition_concentration", concentration_feat) #removed due to Correlation Evaluation
 ])
 
 def compute_modularity_features_efficiently(G):
@@ -255,7 +255,7 @@ mod_diagonal, mod_row_sum, mod_positive = compute_modularity_features_efficientl
 # Add to dataframe
 df_wikinetmetrics = df_wikinetmetrics.with_columns([
     pl.Series("modularity_row_sum", mod_row_sum), 
-    pl.Series("modularity_positive_connections", mod_positive)
+    #pl.Series("modularity_positive_connections", mod_positive) #removed due to Correlation Evaluation
 ])
 
 

@@ -52,19 +52,21 @@ Citing this way: [-@hanGraphNeuralNetworks2020], [-@montiFakeNewsDetection2019]
 
 # Data Analysis
 
-## Dataset Description 
+## Dataset Description
 
 (Features and Target Variable, Article based)
 
 ## Wikipedia Network
 
+The network was obtained by a BFS-search, starting at a handful of seed articles.
+
 ### Graph Description
 
-- single conencted component and a directed network
-- sparse network
-- reasonably clustered
-- pretty sizeable sample but by no means exhaustive for all of wikipedia
-
+-   single CC
+-   directed network
+-   sparse network
+-   reasonably clustered
+-   pretty sizeable sample but by no means exhaustive for all of wikipedia
 
 ```{r, echo=FALSE}
 knitr::kable(data_descriptive, caption = "Network Descriptive Metrics", 
@@ -72,8 +74,8 @@ knitr::kable(data_descriptive, caption = "Network Descriptive Metrics",
               format.args = list(scientific = FALSE))
 ```
 
-- Degree Distribution 
-- reasonably similar to powerlaw or lognormal - in any case heavy tailed (very few nodes with a lot of connections), pretty normal for many internet networks, rich-get richer effect 
+-   Degree Distribution
+-   reasonably similar to powerlaw or lognormal - in any case heavy tailed (very few nodes with a lot of connections), pretty normal for many internet networks, rich-get richer effect
 
 \begin{figure}[H]
     \centering
@@ -82,8 +84,8 @@ knitr::kable(data_descriptive, caption = "Network Descriptive Metrics",
     \label{fig:pca_combined}
 \end{figure}
 
-- for none of the tested attributes assortativity could be measured, which is very surprising and also pretty disheartneing 
-- basically similar nodes are not neighbors which takes away one of the main theoretic assumptions 
+-   for none of the tested attributes assortativity could be measured, which is very surprising and also pretty disheartneing
+-   basically similar nodes are not neighbors which takes away one of the main theoretic assumptions
 
 ```{r, echo=FALSE}
 knitr::kable(data_homophily, caption = "Network Assortativity", 
@@ -91,23 +93,52 @@ knitr::kable(data_homophily, caption = "Network Assortativity",
               format.args = list(scientific = FALSE))
 ```
 
-### Graph based Features 
+-   Transition Probabilties for all classes on graph
 
-- For one we used the conenctions in the network as part of the data that all the neural networks except for the MLP-Baseline were trained
-- 
+### Graph based Features
+
+-   For one we used the conenctions in the network as part of the data that all the neural networks except for the MLP-Baseline were trained
+
+-   Centralities
+
+    -   pagerank
+    -   katz (paused beacause of redundancy)
+    -   betweenness
+    -   hub/authority
+    -   degree in
+    -   degree out
+    -   core number
+    -   clustering (local)
+
+-   CCDFs of network metrics across article categories
+
+-   Spectral Embedding
+
+-   Transition Matrix
+
+-   Modularity Matrix
+
+-   Share Reciprocity
 
 ## Preprocessing
 
-During the pre-processing we face two important challenges. The first was the highly imbalanced target variable with only a very small fraction of high-quality articles. The second challenge were the heavily skewed distributions, especially for the graph based features. 
+During the pre-processing we face two important challenges. The first was the highly imbalanced target variable with only a very small fraction of high-quality articles. The second challenge were the heavily skewed distributions, especially for the graph based features.
 
-Regarding our target variable we tried switching from a classification to a regression problem. This allowed us to circumvent class counts by treating the ordinal categorical attributes as a numerical attribute. The heavily skewed distribution was log-transformed in order to obtain a less skewed distribution. After a brief evaluation, this approach proved to be flawed because the model just made average predictions.
-We concentrated on the classification approach. A first measure was to aggregated the categories into three ordinal classes from the initial count of nine. This improved class frequencies to a reasonable degree where training and predictions became possible. 
+Regarding our target variable we tried switching from a classification to a regression problem. This allowed us to circumvent class counts by treating the ordinal categorical attributes as a numerical attribute. The heavily skewed distribution was log-transformed in order to obtain a less skewed distribution. After a brief evaluation, this approach proved to be flawed because the model just made average predictions. We concentrated on the classification approach. A first measure was to aggregated the categories into three ordinal classes from the initial count of nine. This improved class frequencies to a reasonable degree where training and predictions became possible.
 
-The features had to be preprocessed since the numerical ranges were not uniform and fit for training. Here normalization could have solved the problem. However the distributions particularly for the network metrics are immensely positvely skewed. Different kinds such as standard, minmax, robust and robust-log scaling proved to be ineffective to generate reasonably spread distributions. The only approach that brought reasonable results was quantile scaling. Quantile scaling transforms data by mapping each value to its percentile rank, creating a uniform distribution where extreme outliers get compressed while preserving relative order. 
+The features had to be preprocessed since the numerical ranges were not uniform and fit for training. Here normalization could have solved the problem. However the distributions particularly for the network metrics are immensely positvely skewed. Different kinds such as standard, minmax, robust and robust-log scaling proved to be ineffective to generate reasonably spread distributions. The only approach that brought reasonable results was quantile scaling. Quantile scaling transforms data by mapping each value to its percentile rank, creating a uniform distribution where extreme outliers get compressed while preserving relative order.
 
-# Methods
+For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of the network. \# Methods
 
-(Model architectures, training procedures, evaluation metrics)
+## Graph-Neural-Network Models
+
+### Graph-Convolutional
+
+### Graph-Sage
+
+### Graph Attention
+
+## Training and Evaluation
 
 # Results
 

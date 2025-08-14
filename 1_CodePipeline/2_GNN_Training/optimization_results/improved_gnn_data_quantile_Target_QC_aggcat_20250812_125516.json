@@ -1,0 +1,17 @@
+{
+  "best_params": {
+    "hidden_dim": 32,
+    "num_layers": 3,
+    "dropout": 0.18133659944501895,
+    "lr": 0.028327157402166788,
+    "weight_decay": 9.079390197727393e-06,
+    "loss_type": "weighted_ce",
+    "oversample_strategy": "balanced",
+    "min_samples_factor": 4
+  },
+  "best_value": -Infinity,
+  "n_trials": 3,
+  "model_type": "improved_gnn",
+  "data_file": "data_quantile_Target_QC_aggcat",
+  "timestamp": "20250812_125516"
+}

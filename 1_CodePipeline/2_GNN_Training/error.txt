@@ -1,0 +1,45 @@
+(pytorch_3.10.0) ramius@Ramiuss-MacBook-Pro 2_GNN_Training % caffeinate -i python3 runner_with_optimization.py \
+          --data_file data_quantile_Target_QC_aggcat \
+      --model_types improved_gnn residual_gcn \
+      --n_trials 3 \
+      --n_splits 3 \
+      --use_graphsaint
+Enhanced GNN Training Pipeline with Class Imbalance Handling
+============================================================
+Data file: data_quantile_Target_QC_aggcat
+Model types: ['improved_gnn', 'residual_gcn']
+Use GraphSAINT: True
+Optimization trials per model: 3
+CV folds: 3
+Starting Hyperparameter Optimization Phase
+============================================================
+
+Optimizing improved_gnn...
+
+============================================================
+Hyperparameter optimization for improved_gnn
+============================================================
+Running: python3 2.3_Hyperparameter_Optimization.py --data_file data_quantile_Target_QC_aggcat --model_type improved_gnn --n_trials 3 --n_splits 3 --epochs_per_trial 10 --final_epochs 20 --device auto
+✗ Command failed with return code 1
+Error: [I 2025-08-12 12:20:31,592] A new study created in memory with name: improved_gnn_optimization_20250812_122031
+[I 2025-08-12 12:34:29,705] Trial 0 finished with value: -inf and parameters: {'hidden_dim': 32, 'num_layers': 3, 'dropout': 0.18133659944501895, 'lr': 0.028327157402166788, 'weight_decay': 9.079390197727393e-06, 'loss_type': 'weighted_ce', 'oversample_strategy': 'balanced', 'min_samples_factor': 4}. Best is trial 0 with value: -inf.
+[I 2025-08-12 12:45:45,695] Trial 1 finished with value: -inf and parameters: {'hidden_dim': 64, 'num_layers': 4, 'dropout': 0.4292072083144908, 'lr': 0.056386345225458566, 'weight_decay': 9.964129036265725e-05, 'loss_type': 'weighted_ce', 'oversample_strategy': 'boosted', 'min_samples_factor': 3}. Best is trial 0 with value: -inf.
+[I 2025-08-12 12:55:16,757] Trial 2 finished with value: -inf and parameters: {'hidden_dim': 128, 'num_layers': 3, 'dropout': 0.5289901367414181, 'lr': 0.034515310262815395, 'weight_decay': 0.00010941126075355244, 'loss_type': 'weighted_ce', 'oversample_strategy': 'boosted', 'min_samples_factor': 4}. Best is trial 0 with value: -inf.
+Traceback (most recent call last):
+  File "/Users/ramius/Desktop/CodeVault/01_Project/Uni/DLSS_DeepLearningforSocialScientists/Final_Project/DLSS-WAQP/1_CodePipeline/2_GNN_Training/2.3_Hyperparameter_Optimization.py", line 678, in <module>
+    main()
+  File "/Users/ramius/Desktop/CodeVault/01_Project/Uni/DLSS_DeepLearningforSocialScientists/Final_Project/DLSS-WAQP/1_CodePipeline/2_GNN_Training/2.3_Hyperparameter_Optimization.py", line 663, in main
+    final_model = train_final_model(
+  File "/Users/ramius/Desktop/CodeVault/01_Project/Uni/DLSS_DeepLearningforSocialScientists/Final_Project/DLSS-WAQP/1_CodePipeline/2_GNN_Training/2.3_Hyperparameter_Optimization.py", line 398, in train_final_model
+    model = model.to(device)
+  File "/Users/ramius/.pyenv/versions/pytorch_3.10.0/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1355, in to
+    return self._apply(convert)
+  File "/Users/ramius/.pyenv/versions/pytorch_3.10.0/lib/python3.10/site-packages/torch/nn/modules/module.py", line 915, in _apply
+    module._apply(fn)
+  File "/Users/ramius/.pyenv/versions/pytorch_3.10.0/lib/python3.10/site-packages/torch/nn/modules/module.py", line 942, in _apply
+    param_applied = fn(param)
+  File "/Users/ramius/.pyenv/versions/pytorch_3.10.0/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1341, in convert
+    return t.to(
+RuntimeError: invalid low watermark ratio 1.4
+
+✗ Optimization failed for improved_gnn

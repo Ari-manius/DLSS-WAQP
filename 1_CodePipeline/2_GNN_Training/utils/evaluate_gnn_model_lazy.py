@@ -33,14 +33,14 @@ def evaluate_gnn_model_lazy(data_path, model, mask_type='test', device='cpu', ba
     total_batches = (total_test_nodes + batch_size - 1) // batch_size
     processed_nodes = 0
     
-    print(f"Evaluating model on {mask_type} set using lazy loading...")
-    print(f"Total {mask_type} nodes: {total_test_nodes}, Batch size: {batch_size}, Total batches: {total_batches}")
+    #print(f"Evaluating model on {mask_type} set using lazy loading...")
+    #print(f"Total {mask_type} nodes: {total_test_nodes}, Batch size: {batch_size}, Total batches: {total_batches}")
     
     with torch.no_grad():
         for batch_idx, (target_nodes, expanded_nodes) in enumerate(loader.get_test_node_batches(mask_type)):
             processed_nodes += len(target_nodes)
             progress = (processed_nodes / total_test_nodes) * 100
-            print(f"Batch {batch_idx + 1}/{total_batches}: Processing {len(target_nodes)} nodes ({processed_nodes}/{total_test_nodes}, {progress:.1f}%)")
+            #print(f"Batch {batch_idx + 1}/{total_batches}: Processing {len(target_nodes)} nodes ({processed_nodes}/{total_test_nodes}, {progress:.1f}%)")
             
             # Load subgraph for this batch
             subgraph_data = loader.get_subgraph_batch(expanded_nodes)

@@ -1,0 +1,49 @@
+2025-08-12 12:20:31,587 - INFO - Starting optimization for improved_gnn
+2025-08-12 12:20:31,587 - INFO - Log file: optimization_logs/improved_gnn_optimization_20250812_122031.log
+2025-08-12 12:20:31,589 - INFO - 🚀 Starting hyperparameter optimization for improved_gnn
+2025-08-12 12:20:31,589 - INFO - 📋 Configuration:
+2025-08-12 12:20:31,589 - INFO -    Task type: classification
+2025-08-12 12:20:31,589 - INFO -    Trials: 3
+2025-08-12 12:20:31,589 - INFO -    CV folds: 3
+2025-08-12 12:20:31,589 - INFO -    Epochs per trial: 10
+2025-08-12 12:20:31,589 - INFO -    Device: mps
+2025-08-12 12:20:31,590 - INFO -    Direction: maximize
+2025-08-12 12:20:31,591 - INFO - 📊 Class distribution:
+2025-08-12 12:20:31,591 - INFO -    Class 0: 267170 samples (70.3%)
+2025-08-12 12:20:31,591 - INFO -    Class 1: 110778 samples (29.2%)
+2025-08-12 12:20:31,591 - INFO -    Class 2: 1902 samples (0.5%)
+2025-08-12 12:20:31,592 - INFO - 🔍 Starting optimization with 3 trials...
+2025-08-12 12:20:31,592 - INFO - 🔄 Starting trial 0
+2025-08-12 12:20:31,592 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-12 12:20:31,595 - INFO -    📊 Parameters: {'hidden_dim': 32, 'num_layers': 3, 'dropout': 0.18133659944501895, 'lr': 0.028327157402166788, 'weight_decay': 9.079390197727393e-06, 'oversample_strategy': 'balanced', 'min_samples_factor': 4}
+2025-08-12 12:20:31,595 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-12 12:34:29,690 - ERROR -    ❌ Trial 0 failed: invalid low watermark ratio 1.4
+2025-08-12 12:34:29,705 - INFO - 🎯 Trial 1/3 (33.3%): Score = -inf
+2025-08-12 12:34:29,706 - INFO - 🔄 Starting trial 1
+2025-08-12 12:34:29,706 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-12 12:34:29,719 - INFO -    📊 Parameters: {'hidden_dim': 64, 'num_layers': 4, 'dropout': 0.4292072083144908, 'lr': 0.056386345225458566, 'weight_decay': 9.964129036265725e-05, 'oversample_strategy': 'boosted', 'min_samples_factor': 3}
+2025-08-12 12:34:29,719 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-12 12:45:45,682 - ERROR -    ❌ Trial 1 failed: invalid low watermark ratio 1.4
+2025-08-12 12:45:45,696 - INFO - 🎯 Trial 2/3 (66.7%): Score = -inf
+2025-08-12 12:45:45,696 - INFO - 🔄 Starting trial 2
+2025-08-12 12:45:45,696 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-12 12:45:45,708 - INFO -    📊 Parameters: {'hidden_dim': 128, 'num_layers': 3, 'dropout': 0.5289901367414181, 'lr': 0.034515310262815395, 'weight_decay': 0.00010941126075355244, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-12 12:45:45,709 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-12 12:55:16,745 - ERROR -    ❌ Trial 2 failed: invalid low watermark ratio 1.4
+2025-08-12 12:55:16,758 - INFO - 🎯 Trial 3/3 (100.0%): Score = -inf
+2025-08-12 12:55:16,759 - INFO - 
+🎉 OPTIMIZATION COMPLETED!
+2025-08-12 12:55:16,759 - INFO - ============================================================
+2025-08-12 12:55:16,759 - INFO - 📋 Summary:
+2025-08-12 12:55:16,759 - INFO -    Total trials: 3
+2025-08-12 12:55:16,759 - INFO -    Best trial: #0
+2025-08-12 12:55:16,759 - INFO -    Best value: -inf
+2025-08-12 12:55:16,759 - INFO - 🏆 Best parameters:
+2025-08-12 12:55:16,759 - INFO -    hidden_dim: 32
+2025-08-12 12:55:16,759 - INFO -    num_layers: 3
+2025-08-12 12:55:16,759 - INFO -    dropout: 0.18133659944501895
+2025-08-12 12:55:16,759 - INFO -    lr: 0.028327157402166788
+2025-08-12 12:55:16,759 - INFO -    weight_decay: 9.079390197727393e-06
+2025-08-12 12:55:16,759 - INFO -    loss_type: weighted_ce
+2025-08-12 12:55:16,759 - INFO -    oversample_strategy: balanced
+2025-08-12 12:55:16,759 - INFO -    min_samples_factor: 4

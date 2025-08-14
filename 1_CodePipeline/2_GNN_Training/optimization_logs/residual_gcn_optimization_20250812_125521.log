@@ -1,0 +1,25 @@
+2025-08-12 12:55:21,155 - INFO - Starting optimization for residual_gcn
+2025-08-12 12:55:21,155 - INFO - Log file: optimization_logs/residual_gcn_optimization_20250812_125521.log
+2025-08-12 12:55:21,157 - INFO - 🚀 Starting hyperparameter optimization for residual_gcn
+2025-08-12 12:55:21,157 - INFO - 📋 Configuration:
+2025-08-12 12:55:21,157 - INFO -    Task type: classification
+2025-08-12 12:55:21,157 - INFO -    Trials: 3
+2025-08-12 12:55:21,157 - INFO -    CV folds: 3
+2025-08-12 12:55:21,157 - INFO -    Epochs per trial: 10
+2025-08-12 12:55:21,157 - INFO -    Device: mps
+2025-08-12 12:55:21,157 - INFO -    Direction: maximize
+2025-08-12 12:55:21,159 - INFO - 📊 Class distribution:
+2025-08-12 12:55:21,159 - INFO -    Class 0: 267170 samples (70.3%)
+2025-08-12 12:55:21,159 - INFO -    Class 1: 110778 samples (29.2%)
+2025-08-12 12:55:21,159 - INFO -    Class 2: 1902 samples (0.5%)
+2025-08-12 12:55:21,159 - INFO - 🔍 Starting optimization with 3 trials...
+2025-08-12 12:55:21,159 - INFO - 🔄 Starting trial 0
+2025-08-12 12:55:21,159 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-12 12:55:21,162 - INFO -    📊 Parameters: {'hidden_dim': 64, 'num_layers': 2, 'dropout': 0.1042819737116765, 'lr': 0.0006030595072438819, 'weight_decay': 0.0007964973153295292, 'oversample_strategy': 'balanced', 'min_samples_factor': 4}
+2025-08-12 12:55:21,162 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-12 13:05:08,310 - ERROR -    ❌ Trial 0 failed: invalid low watermark ratio 1.4
+2025-08-12 13:05:08,324 - INFO - 🎯 Trial 1/3 (33.3%): Score = -inf
+2025-08-12 13:05:08,324 - INFO - 🔄 Starting trial 1
+2025-08-12 13:05:08,325 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-12 13:05:08,336 - INFO -    📊 Parameters: {'hidden_dim': 32, 'num_layers': 3, 'dropout': 0.463321387458803, 'lr': 0.00023555854630372757, 'weight_decay': 3.9698545975299407e-05, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-12 13:05:08,336 - INFO -    🔬 Running 3-fold cross-validation...
