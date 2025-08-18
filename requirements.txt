@@ -1,0 +1,159 @@
+# DLSS-WAQP: Deep Learning for Social Scientists
+# Wikipedia Article Quality Prediction with Graph Neural Networks
+# Final Project Requirements
+
+# ================================================================
+# CORE DEEP LEARNING FRAMEWORKS
+# ================================================================
+torch>=2.0.0
+torch-geometric>=2.3.0
+torch-sparse>=0.6.17
+torch-scatter>=2.1.1
+torch-cluster>=1.6.1
+torchvision>=0.15.0
+
+# ================================================================
+# SCIENTIFIC COMPUTING & DATA PROCESSING
+# ================================================================
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.10.0
+
+# ================================================================
+# MACHINE LEARNING & OPTIMIZATION
+# ================================================================
+scikit-learn>=1.3.0
+optuna>=3.3.0
+
+# ================================================================
+# GRAPH PROCESSING LIBRARIES
+# ================================================================
+networkx>=3.1
+# graph-tool>=2.45  # Uncomment if needed (requires manual installation)
+
+# ================================================================
+# VISUALIZATION & PLOTTING
+# ================================================================
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.15.0
+
+# ================================================================
+# PROGRESS BARS & USER INTERFACE
+# ================================================================
+tqdm>=4.65.0
+
+# ================================================================
+# JUPYTER NOTEBOOKS & DEVELOPMENT
+# ================================================================
+jupyter>=1.0.0
+notebook>=6.5.0
+ipython>=8.14.0
+ipykernel>=6.25.0
+
+# ================================================================
+# DATA FORMATS & SERIALIZATION
+# ================================================================
+pyarrow>=12.0.0  # For Parquet files
+h5py>=3.9.0      # For HDF5 files (if needed)
+
+# ================================================================
+# SYSTEM & UTILITIES (Built-in modules, no installation needed)
+# ================================================================
+# os, sys, json, glob, subprocess, argparse, datetime, collections
+# copy, logging, functools, itertools, pathlib, pickle, time
+
+# ================================================================
+# INSTALLATION NOTES
+# ================================================================
+
+# 1. GPU Support and PyTorch Extensions:
+#    For NVIDIA GPUs with CUDA 11.8:
+#    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+#    pip install torch-geometric torch-sparse torch-scatter torch-cluster
+#    
+#    For Apple Silicon (MPS) / CPU:
+#    pip install torch torchvision torch-geometric torch-sparse torch-scatter torch-cluster
+#    
+#    Note: torch-sparse, torch-scatter, and torch-cluster are PyTorch Geometric 
+#    extension libraries that provide optimized sparse operations for GNNs
+
+# 2. graph-tool (Optional for advanced graph operations):
+#    conda install -c conda-forge graph-tool
+#    OR visit: https://graph-tool.skewed.de/
+#    Note: Only needed if using graph-tool specific features
+
+# 3. Memory Management:
+#    For large graphs, ensure sufficient RAM
+#    Consider using --memory_efficient flags during training
+
+# 4. Python Version:
+#    Recommended: Python 3.8+ (required for some optimization features)
+
+# ================================================================
+# PROJECT COMPONENTS
+# ================================================================
+
+# 1. WikiDataNet (1_WikiDataNet/):
+#    - Data collection and preprocessing
+#    - Network construction and analysis
+#    - Feature engineering
+
+# 2. GNN Training Pipeline (1_CodePipeline/2_GNN_Training/):
+#    - Multiple GNN model implementations
+#    - Hyperparameter optimization with Optuna
+#    - Cross-validation and evaluation
+#    - Enhanced training with class imbalance handling
+
+# ================================================================
+# DEVELOPMENT ENVIRONMENT SETUP
+# ================================================================
+
+# Create virtual environment:
+# python -m venv venv
+# source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install requirements:
+# pip install -r requirements.txt
+
+# Verify GPU support (if available):
+# python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}'); print(f'MPS: {torch.backends.mps.is_available()}')"
+
+# ================================================================
+# MINIMUM SYSTEM REQUIREMENTS
+# ================================================================
+
+# RAM: 16GB+ recommended (8GB minimum)
+# Storage: 5GB+ free space
+# GPU: Optional but recommended for large datasets
+# CPU: Multi-core recommended for cross-validation
+
+# ================================================================
+# TROUBLESHOOTING
+# ================================================================
+
+# If you encounter dependency conflicts:
+# 1. Try using conda instead of pip
+# 2. Create a fresh virtual environment
+# 3. Install PyTorch first, then other packages
+# 4. Check torch-geometric compatibility with your PyTorch version
+# 5. Install PyTorch extensions after torch-geometric:
+#    pip install torch-sparse torch-scatter torch-cluster
+
+# For MPS-related issues on Apple Silicon:
+# export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
+
+# ================================================================
+# QUICK START
+# ================================================================
+
+# See README.md for complete project execution guide
+
+# Installation:
+# python -m venv venv
+# source venv/bin/activate  # Windows: venv\Scripts\activate
+# pip install -r requirements.txt
+
+# Quick training:
+# cd 1_CodePipeline/2_GNN_Training
+# python 2.2_runner.py
