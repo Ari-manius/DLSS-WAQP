@@ -1,7 +1,8 @@
 import torch
 import numpy as np
 from sklearn.model_selection import StratifiedKFold, KFold
-from torch_geometric.utils import to_networkx
+from torch_geometric.utils import to_networkx, subgraph
+from torch_geometric.data import Data
 import networkx as nx
 from collections import defaultdict
 import copy
@@ -156,14 +157,14 @@ def cross_validate_model(model_class, data, model_params, train_params,
     Returns:
         Dictionary with CV results
     """
-    # Force clean environment variable to prevent MPS memory issues
+    # Handle MPS memory management more carefully
     import os
-    if 'PYTORCH_MPS_HIGH_WATERMARK_RATIO' in os.environ:
-        del os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO']
-    
-    # Set safe memory limits for MPS
     if device.type == 'mps':
-        os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = '0.7'
+        # Clear cache before starting
+        torch.mps.empty_cache()
+        # Remove any existing watermark setting that might be invalid
+        if 'PYTORCH_MPS_HIGH_WATERMARK_RATIO' in os.environ:
+            del os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO']
     # Get splits
     splits = graph_aware_split(data, n_splits=n_splits, test_size=test_size, 
                               random_state=random_state)
@@ -187,7 +188,19 @@ def cross_validate_model(model_class, data, model_params, train_params,
         output_dim = len(fold_data.y.unique()) if len(fold_data.y.unique()) > 1 else 1
         
         model = model_class(input_dim=input_dim, output_dim=output_dim, **model_params)
-        model = model.to(device)
+        
+        # Handle MPS device issues
+        try:
+            model = model.to(device)
+        except RuntimeError as e:
+            if "watermark ratio" in str(e) and device.type == 'mps':
+                print(f"⚠ MPS watermark error in fold {fold}: {e}")
+                print("⚠ Falling back to CPU for this fold")
+                device = torch.device('cpu')
+                model = model.to(device)
+                fold_data = fold_data.to(device)
+            else:
+                raise e
         
         # Setup optimizer and loss
         optimizer = torch.optim.Adam(model.parameters(), **train_params.get('optimizer', {}))
@@ -208,16 +221,70 @@ def cross_validate_model(model_class, data, model_params, train_params,
         
         for epoch in range(epochs):
             optimizer.zero_grad()
-            output = model(fold_data)
-            train_loss = criterion(output[train_mask], fold_data.y[train_mask])
+            
+            # Use memory-efficient sampling for large datasets
+            if hasattr(fold_data, 'train_mask') and train_mask.sum() > 8000:
+                train_indices = torch.where(train_mask)[0].to(fold_data.x.device)
+                sample_size = min(6000, len(train_indices))
+                sampled_indices = train_indices[torch.randperm(len(train_indices), device=train_indices.device)[:sample_size]]
+                
+                # Create subgraph
+                edge_index, _ = subgraph(sampled_indices, fold_data.edge_index, relabel_nodes=True)
+                x_sample = fold_data.x[sampled_indices]
+                y_sample = fold_data.y[sampled_indices]
+                
+                sample_data = Data(x=x_sample, edge_index=edge_index, y=y_sample)
+                output = model(sample_data)
+                train_mask_sample = torch.ones(len(sampled_indices), dtype=torch.bool, device=output.device)
+                train_loss = criterion(output[train_mask_sample], y_sample)
+            else:
+                output = model(fold_data)
+                
+                # Apply smart oversampling for classification if parameters are provided
+                if len(fold_data.y.unique()) > 1 and 'class_balance' in train_params:
+                    from utils.loss_functions import smart_oversample_indices
+                    
+                    train_indices = torch.where(train_mask)[0].to(fold_data.x.device)
+                    train_labels = fold_data.y[train_indices]
+                    
+                    if len(torch.unique(train_labels)) > 1:
+                        cb_params = train_params['class_balance']
+                        oversampled_train_indices = smart_oversample_indices(
+                            train_indices, train_labels,
+                            strategy=cb_params.get('oversample_strategy', 'boosted'),
+                            min_samples_factor=cb_params.get('min_samples_factor', 3),
+                            max_total_samples=cb_params.get('max_total_samples', 20000)
+                        )
+                        train_loss = criterion(output[oversampled_train_indices], 
+                                             fold_data.y[oversampled_train_indices])
+                    else:
+                        train_loss = criterion(output[train_mask], fold_data.y[train_mask])
+                else:
+                    train_loss = criterion(output[train_mask], fold_data.y[train_mask])
+                
             train_loss.backward()
             optimizer.step()
             
             # Validation
             model.eval()
             with torch.no_grad():
-                output = model(fold_data)
-                val_loss = criterion(output[val_mask], fold_data.y[val_mask])
+                # Use sampling for validation too if dataset is large
+                if hasattr(fold_data, 'val_mask') and val_mask.sum() > 4000:
+                    val_indices = torch.where(val_mask)[0].to(fold_data.x.device)
+                    val_sample_size = min(3000, len(val_indices))
+                    sampled_val_indices = val_indices[torch.randperm(len(val_indices), device=val_indices.device)[:val_sample_size]]
+                    
+                    edge_index, _ = subgraph(sampled_val_indices, fold_data.edge_index, relabel_nodes=True)
+                    x_val_sample = fold_data.x[sampled_val_indices]
+                    y_val_sample = fold_data.y[sampled_val_indices]
+                    
+                    val_sample_data = Data(x=x_val_sample, edge_index=edge_index, y=y_val_sample)
+                    output = model(val_sample_data)
+                    val_mask_sample = torch.ones(len(sampled_val_indices), dtype=torch.bool, device=output.device)
+                    val_loss = criterion(output[val_mask_sample], y_val_sample)
+                else:
+                    output = model(fold_data)
+                    val_loss = criterion(output[val_mask], fold_data.y[val_mask])
             model.train()
             
             train_losses.append(train_loss.item())
@@ -230,19 +297,70 @@ def cross_validate_model(model_class, data, model_params, train_params,
         # Final evaluation
         model.eval()
         with torch.no_grad():
-            output = model(fold_data)
+            # Use sampling for final evaluation if dataset is large
+            if hasattr(fold_data, 'test_mask') and test_mask.sum() > 4000:
+                # Sample test data
+                test_indices = torch.where(test_mask)[0].to(fold_data.x.device)
+                test_sample_size = min(3000, len(test_indices))
+                sampled_test_indices = test_indices[torch.randperm(len(test_indices), device=test_indices.device)[:test_sample_size]]
+                
+                edge_index, _ = subgraph(sampled_test_indices, fold_data.edge_index, relabel_nodes=True)
+                x_test_sample = fold_data.x[sampled_test_indices]
+                y_test_sample = fold_data.y[sampled_test_indices]
+                
+                test_sample_data = Data(x=x_test_sample, edge_index=edge_index, y=y_test_sample)
+                test_output = model(test_sample_data)
+                test_mask_sample = torch.ones(len(sampled_test_indices), dtype=torch.bool, device=test_output.device)
+                
+                # Test performance
+                test_loss = criterion(test_output[test_mask_sample], y_test_sample).item()
+                
+                # Sample validation data for consistency
+                if val_mask.sum() > 4000:
+                    val_indices = torch.where(val_mask)[0].to(fold_data.x.device)
+                    val_sample_size = min(3000, len(val_indices))
+                    sampled_val_indices = val_indices[torch.randperm(len(val_indices), device=val_indices.device)[:val_sample_size]]
+                    
+                    val_edge_index, _ = subgraph(sampled_val_indices, fold_data.edge_index, relabel_nodes=True)
+                    x_val_sample = fold_data.x[sampled_val_indices]
+                    y_val_sample = fold_data.y[sampled_val_indices]
+                    
+                    val_sample_data = Data(x=x_val_sample, edge_index=val_edge_index, y=y_val_sample)
+                    val_output = model(val_sample_data)
+                    val_mask_sample = torch.ones(len(sampled_val_indices), dtype=torch.bool, device=val_output.device)
+                    
+                    if len(fold_data.y.unique()) > 1:  # Classification
+                        _, test_pred = torch.max(test_output[test_mask_sample], 1)
+                        test_acc = (test_pred == y_test_sample).float().mean().item()
+                        
+                        _, val_pred = torch.max(val_output[val_mask_sample], 1)
+                        val_acc = (val_pred == y_val_sample).float().mean().item()
+                else:
+                    # Use full validation set
+                    val_output = model(fold_data)
+                    if len(fold_data.y.unique()) > 1:  # Classification
+                        _, test_pred = torch.max(test_output[test_mask_sample], 1)
+                        test_acc = (test_pred == y_test_sample).float().mean().item()
+                        
+                        _, val_pred = torch.max(val_output[val_mask], 1)
+                        val_acc = (val_pred == fold_data.y[val_mask]).float().mean().item()
+            else:
+                # Use full dataset
+                output = model(fold_data)
+                
+                # Test performance
+                test_loss = criterion(output[test_mask], fold_data.y[test_mask]).item()
+                
+                if len(fold_data.y.unique()) > 1:  # Classification
+                    _, test_pred = torch.max(output[test_mask], 1)
+                    test_acc = (test_pred == fold_data.y[test_mask]).float().mean().item()
+                    
+                    # Validation accuracy
+                    _, val_pred = torch.max(output[val_mask], 1)
+                    val_acc = (val_pred == fold_data.y[val_mask]).float().mean().item()
             
-            # Test performance
-            test_loss = criterion(output[test_mask], fold_data.y[test_mask]).item()
-            
+            # Create result dictionary based on task type
             if len(fold_data.y.unique()) > 1:  # Classification
-                _, test_pred = torch.max(output[test_mask], 1)
-                test_acc = (test_pred == fold_data.y[test_mask]).float().mean().item()
-                
-                # Validation accuracy
-                _, val_pred = torch.max(output[val_mask], 1)
-                val_acc = (val_pred == fold_data.y[val_mask]).float().mean().item()
-                
                 fold_result = {
                     'fold': fold,
                     'val_loss': val_losses[-1],

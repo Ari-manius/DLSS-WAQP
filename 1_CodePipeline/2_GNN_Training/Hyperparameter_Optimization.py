@@ -15,6 +15,8 @@ from datetime import datetime
 import logging
 import sys
 from tqdm import tqdm
+from torch_geometric.utils import subgraph
+from torch_geometric.data import Data
 
 # Force clean MPS environment variable immediately at import time
 if 'PYTORCH_MPS_HIGH_WATERMARK_RATIO' in os.environ:
@@ -118,18 +120,22 @@ def objective(trial, data, model_type='improved_gnn', task_type='classification'
         logger.info(f"🔄 Starting trial {trial.number}")
         logger.info(f"   Device: {device}, Task: {task_type}, CV folds: {n_splits}")
     
-    # Hyperparameter search space
+    # Hyperparameter search space with model-specific constraints
     params = {
         'hidden_dim': trial.suggest_categorical('hidden_dim', [32, 64, 128, 256]),
         'num_layers': trial.suggest_int('num_layers', 2, 4),
         'dropout': trial.suggest_float('dropout', 0.1, 0.7),
-        'lr': trial.suggest_float('lr', 1e-4, 1e-1, log=True),
         'weight_decay': trial.suggest_float('weight_decay', 1e-6, 1e-2, log=True)
     }
     
-    # Model-specific parameters
+    # Model-specific parameters and constraints
     if model_type == 'gat':
         params['heads'] = trial.suggest_categorical('heads', [2, 4, 8])
+        # GAT requires lower learning rates due to attention mechanism sensitivity
+        params['lr'] = trial.suggest_float('lr', 1e-4, 1e-2, log=True)
+    else:
+        # Standard learning rate range for other models
+        params['lr'] = trial.suggest_float('lr', 1e-4, 1e-1, log=True)
     
     # Enhanced loss function parameters for class imbalance
     if task_type == 'classification':
@@ -168,6 +174,14 @@ def objective(trial, data, model_type='improved_gnn', task_type='classification'
         },
         'epochs': epochs
     }
+    
+    # Add class imbalance handling parameters for classification
+    if task_type == 'classification':
+        train_params['class_balance'] = {
+            'oversample_strategy': params.get('oversample_strategy', 'boosted'),
+            'min_samples_factor': params.get('min_samples_factor', 3),
+            'max_total_samples': 20000  # Memory-safe limit
+        }
     
     # Model selection
     if model_type == 'improved_gnn':
@@ -395,7 +409,25 @@ def train_final_model(data, best_params, model_type, device, epochs=200):
     elif model_type == 'mlp':
         model = MLPBaseline(**model_params)
     
-    model = model.to(device)
+    # Handle MPS device issues
+    if device.type == 'mps':
+        import os
+        torch.mps.empty_cache()
+        # Remove any problematic environment variables
+        if 'PYTORCH_MPS_HIGH_WATERMARK_RATIO' in os.environ:
+            del os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO']
+    
+    try:
+        model = model.to(device)
+    except RuntimeError as e:
+        if "watermark ratio" in str(e):
+            print(f"⚠ MPS watermark error: {e}")
+            print("⚠ Falling back to CPU for stability")
+            device = torch.device('cpu')
+            model = model.to(device)
+        else:
+            raise e
+            
     initialize_weights(model)
     
     # Setup enhanced loss function with class imbalance handling
@@ -450,28 +482,62 @@ def train_final_model(data, best_params, model_type, device, epochs=200):
         # Training with enhanced oversampling for classification
         model.train()
         optimizer.zero_grad()
-        output = model(data)
         
-        # Apply smart oversampling for classification
-        if task_type == 'classification':
-            train_indices = torch.where(data.train_mask)[0]
-            train_labels = data.y[train_indices]
-            
-            # Use enhanced oversampling strategy from hyperparameters
-            if len(torch.unique(train_labels)) > 1:
-                oversample_strategy = best_params.get('oversample_strategy', 'boosted')
-                min_samples_factor = best_params.get('min_samples_factor', 3)
+        # Use GraphSAINT sampling for memory efficiency
+        if hasattr(data, 'train_mask') and data.train_mask.sum() > 10000:
+            # Sample subgraph for large datasets
+            train_indices = torch.where(data.train_mask)[0].to(data.x.device)
+            if len(train_indices) == 0:
+                # Fallback if no training data
+                output = model(data)
+                train_mask_sample = data.train_mask
+            else:
+                sample_size = min(8000, len(train_indices))  # Limit sample size
+                sample_size = max(1, sample_size)  # Ensure at least 1 sample
+                sampled_indices = train_indices[torch.randperm(len(train_indices), device=train_indices.device)[:sample_size]]
                 
-                oversampled_train_indices = smart_oversample_indices(
-                    train_indices, train_labels, 
-                    strategy=oversample_strategy, 
-                    min_samples_factor=min_samples_factor
-                )
-                train_loss = criterion(output[oversampled_train_indices], data.y[oversampled_train_indices])
+                # Create subgraph
+                edge_index, _ = subgraph(sampled_indices, data.edge_index, relabel_nodes=True)
+                x_sample = data.x[sampled_indices]
+                y_sample = data.y[sampled_indices]
+                
+                # Create temporary data object
+                sample_data = Data(x=x_sample, edge_index=edge_index, y=y_sample)
+                output = model(sample_data)
+                train_mask_sample = torch.ones(len(sampled_indices), dtype=torch.bool, device=output.device)
+        else:
+            output = model(data)
+            train_mask_sample = data.train_mask
+        
+        # Apply loss calculation based on sampling strategy
+        if task_type == 'classification':
+            if hasattr(data, 'train_mask') and data.train_mask.sum() > 10000:
+                # For sampled data, use the sample
+                train_loss = criterion(output[train_mask_sample], y_sample)
+            else:
+                # For smaller datasets, can still use oversampling
+                train_indices = torch.where(data.train_mask)[0].to(data.x.device)
+                train_labels = data.y[train_indices]
+                
+                if len(torch.unique(train_labels)) > 1:
+                    oversample_strategy = best_params.get('oversample_strategy', 'boosted')
+                    min_samples_factor = best_params.get('min_samples_factor', 3)
+                    
+                    oversampled_train_indices = smart_oversample_indices(
+                        train_indices, train_labels, 
+                        strategy=oversample_strategy, 
+                        min_samples_factor=min_samples_factor,
+                        max_total_samples=20000  # Memory-safe limit
+                    )
+                    train_loss = criterion(output[oversampled_train_indices], data.y[oversampled_train_indices])
+                else:
+                    train_loss = criterion(output[data.train_mask], data.y[data.train_mask])
+        else:
+            # Regression: use appropriate mask based on sampling
+            if hasattr(data, 'train_mask') and data.train_mask.sum() > 10000:
+                train_loss = criterion(output[train_mask_sample], y_sample)
             else:
                 train_loss = criterion(output[data.train_mask], data.y[data.train_mask])
-        else:
-            train_loss = criterion(output[data.train_mask], data.y[data.train_mask])
             
         train_loss.backward()
         
@@ -484,8 +550,23 @@ def train_final_model(data, best_params, model_type, device, epochs=200):
         # Validation
         model.eval()
         with torch.no_grad():
-            output = model(data)
-            val_loss = criterion(output[data.val_mask], data.y[data.val_mask])
+            # Use sampling for validation too if dataset is large
+            if hasattr(data, 'val_mask') and data.val_mask.sum() > 5000:
+                val_indices = torch.where(data.val_mask)[0].to(data.x.device)
+                sample_size = min(4000, len(val_indices))
+                sampled_val_indices = val_indices[torch.randperm(len(val_indices), device=val_indices.device)[:sample_size]]
+                
+                edge_index, _ = subgraph(sampled_val_indices, data.edge_index, relabel_nodes=True)
+                x_val_sample = data.x[sampled_val_indices]
+                y_val_sample = data.y[sampled_val_indices]
+                
+                val_sample_data = Data(x=x_val_sample, edge_index=edge_index, y=y_val_sample)
+                output = model(val_sample_data)
+                val_mask_sample = torch.ones(len(sampled_val_indices), dtype=torch.bool, device=output.device)
+                val_loss = criterion(output[val_mask_sample], y_val_sample)
+            else:
+                output = model(data)
+                val_loss = criterion(output[data.val_mask], data.y[data.val_mask])
         
         train_losses.append(train_loss.item())
         val_losses.append(val_loss.item())
@@ -498,8 +579,15 @@ def train_final_model(data, best_params, model_type, device, epochs=200):
         
         if epoch % 20 == 0:
             if task_type == 'classification':
-                _, val_pred = torch.max(output[data.val_mask], 1)
-                val_acc = (val_pred == data.y[data.val_mask]).float().mean().item()
+                # Use correct validation indices based on whether we sampled or not
+                if hasattr(data, 'val_mask') and data.val_mask.sum() > 5000:
+                    # We used sampling, so compare with sampled data
+                    _, val_pred = torch.max(output[val_mask_sample], 1)
+                    val_acc = (val_pred == y_val_sample).float().mean().item()
+                else:
+                    # No sampling, use original data
+                    _, val_pred = torch.max(output[data.val_mask], 1)
+                    val_acc = (val_pred == data.y[data.val_mask]).float().mean().item()
                 print(f"Epoch {epoch:3d}: Train Loss {train_loss.item():.4f}, "
                       f"Val Loss {val_loss.item():.4f}, Val Acc {val_acc:.4f}")
             else:
@@ -509,11 +597,30 @@ def train_final_model(data, best_params, model_type, device, epochs=200):
     # Enhanced final evaluation with minority class metrics
     model.eval()
     with torch.no_grad():
-        output = model(data)
+        # Use sampling for final evaluation too if dataset is large
+        if hasattr(data, 'test_mask') and data.test_mask.sum() > 5000:
+            test_indices = torch.where(data.test_mask)[0].to(data.x.device)
+            sample_size = min(4000, len(test_indices))
+            sampled_test_indices = test_indices[torch.randperm(len(test_indices), device=test_indices.device)[:sample_size]]
+            
+            edge_index, _ = subgraph(sampled_test_indices, data.edge_index, relabel_nodes=True)
+            x_test_sample = data.x[sampled_test_indices]
+            y_test_sample = data.y[sampled_test_indices]
+            
+            test_sample_data = Data(x=x_test_sample, edge_index=edge_index, y=y_test_sample)
+            output = model(test_sample_data)
+            test_mask_sample = torch.ones(len(sampled_test_indices), dtype=torch.bool, device=output.device)
+            
+            if task_type == 'classification':
+                _, test_pred = torch.max(output[test_mask_sample], 1)
+                test_targets = y_test_sample
+        else:
+            output = model(data)
+            if task_type == 'classification':
+                _, test_pred = torch.max(output[data.test_mask], 1)
+                test_targets = data.y[data.test_mask]
         
         if task_type == 'classification':
-            _, test_pred = torch.max(output[data.test_mask], 1)
-            test_targets = data.y[data.test_mask]
             
             test_acc = (test_pred == test_targets).float().mean().item()
             
@@ -598,24 +705,16 @@ def main():
     
     args = parser.parse_args()
     
-    # Setup device with memory optimization for MPS
-    # First, clean up any problematic environment variable
-    if 'PYTORCH_MPS_HIGH_WATERMARK_RATIO' in os.environ:
-        del os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO']
-    
+    # Setup device
     if args.device == 'auto':
         if torch.cuda.is_available():
             device = torch.device('cuda')
         elif torch.backends.mps.is_available():
             device = torch.device('mps')
-            # Set safe memory fraction to prevent OOM on MPS
-            os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = '0.7'
         else:
             device = torch.device('cpu')
     else:
         device = torch.device(args.device)
-        if args.device == 'mps':
-            os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = '0.7'
     
     print(f"Using device: {device}")
     

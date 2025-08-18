@@ -11,7 +11,7 @@ import json
 import argparse
 from datetime import datetime
 
-def run_command(command, description=None):
+def run_command(command, description=None, env_vars=None):
     """Run a command and handle errors."""
     if description:
         print(f"\n{'='*60}")
@@ -20,8 +20,13 @@ def run_command(command, description=None):
     
     print(f"Running: {command}")
     
+    # Set up environment variables
+    env = os.environ.copy()
+    if env_vars:
+        env.update(env_vars)
+    
     try:
-        result = subprocess.run(command.split(), check=True, capture_output=True, text=True)
+        result = subprocess.run(command.split(), check=True, capture_output=True, text=True, env=env)
         print(f"✓ Command completed successfully")
         return True, result.stdout
     except subprocess.CalledProcessError as e:
@@ -53,19 +58,26 @@ def run_hyperparameter_optimization(data_file, model_types, n_trials=50, n_split
         print(f"\nOptimizing {model_type}...")
         
         optimization_command = (
-            f"python3 2.3_Hyperparameter_Optimization.py "
+            f"python3 Hyperparameter_Optimization.py "
             f"--data_file {data_file} "
             f"--model_type {model_type} "
             f"--n_trials {n_trials} "
             f"--n_splits {n_splits} "
-            f"--epochs_per_trial 10 "
-            f"--final_epochs 20 "
+            f"--epochs_per_trial 20 "
+            f"--final_epochs 40 "
             f"--device auto"
         )
         
+        # Set MPS memory environment variables to avoid memory issues
+        mps_env = {
+            "PYTORCH_MPS_HIGH_WATERMARK_RATIO": "0.0",
+            "PYTORCH_MPS_ALLOCATOR_POLICY": "garbage_collection"
+        }
+        
         success, output = run_command(
             optimization_command, 
-            f"Hyperparameter optimization for {model_type}"
+            f"Hyperparameter optimization for {model_type}",
+            env_vars=mps_env
         )
         
         if success:
@@ -120,7 +132,7 @@ def run_optimized_training(data_file, model_types, best_params_by_model, use_gra
             
             # Build training command with optimized parameters
             base_command = (
-                f"python3 2.2_Enhanced_Training.py "
+                f"python3 Enhanced_Training.py "
                 f"--data_file {data_file} "
                 f"--model_type {model_type} "
                 f"--hidden_dim {params.get('hidden_dim', 128)} "
@@ -152,7 +164,7 @@ def run_optimized_training(data_file, model_types, best_params_by_model, use_gra
             print(f"⚠ Using default parameters for {model_type} (optimization failed)")
             
             fallback_command = (
-                f"python3 2.2_Enhanced_Training.py "
+                f"python3 Enhanced_Training.py "
                 f"--data_file {data_file} "
                 f"--model_type {model_type} "
                 f"--loss_type class_balanced_focal "

@@ -68,13 +68,14 @@ def enhanced_train_gnn(model, data, optimizer, criterion, scheduler, device,
         # Calculate loss (handle oversampling if classification)
         if len(data.y.unique()) > 1:  # Classification
             # Apply smart oversampling for training
-            train_indices = torch.where(data.train_mask)[0]
+            train_indices = torch.where(data.train_mask)[0].to(data.x.device)
             train_labels = data.y[train_indices]
             
             # Use enhanced oversampling strategy
             if len(torch.unique(train_labels)) > 1:  # Ensure multiple classes present
                 oversampled_train_indices = smart_oversample_indices(
-                    train_indices, train_labels, strategy='boosted', min_samples_factor=2
+                    train_indices, train_labels, strategy='boosted', min_samples_factor=2,
+                    max_total_samples=20000  # Memory-safe limit
                 )
                 train_loss = criterion(output[oversampled_train_indices], data.y[oversampled_train_indices])
             else:
@@ -189,9 +190,10 @@ def graphsaint_train_gnn(model, data, optimizer, criterion, scheduler, device,
             save_dir=None
         )
     except ImportError as e:
-        print(f"GraphSAINT requires torch-sparse. Error: {e}")
-        print("Please install torch-sparse: pip install torch-sparse")
-        raise e
+        print(f"⚠ GraphSAINT requires torch-sparse: {e}")
+        print("⚠ Falling back to regular full-batch training")
+        print("  To use GraphSAINT, install: pip install torch-sparse -f https://data.pyg.org/whl/torch-{}.html".format(torch.__version__.split('+')[0]))
+        return None  # Signal fallback needed
     
     train_losses = []
     val_losses = []
@@ -284,7 +286,7 @@ def graphsaint_train_gnn(model, data, optimizer, criterion, scheduler, device,
         val_targets = []
         
         # Get validation node indices
-        val_indices = torch.where(data.val_mask)[0]
+        val_indices = torch.where(data.val_mask)[0].to(data.x.device)
         val_batch_size = min(batch_size, len(val_indices))
         
         with torch.no_grad():
@@ -647,6 +649,11 @@ def main():
             verbose=True,
             model_type=args.model_type
         )
+        
+        # If GraphSAINT failed, fall back to regular training
+        if results is None:
+            print("🔄 Falling back to regular full-batch training...")
+            args.use_graphsaint = False  # Switch to regular training
     else:
         print("Starting regular training...")
         results = enhanced_train_gnn(
@@ -704,7 +711,7 @@ def main():
     
     # Final evaluation with batched inference (memory-safe)
     model.eval()
-    test_indices = torch.where(data.test_mask)[0]
+    test_indices = torch.where(data.test_mask)[0].to(data.x.device)
     test_batch_size = min(4000, len(test_indices))  # Use same batch size as training
     
     test_preds = []

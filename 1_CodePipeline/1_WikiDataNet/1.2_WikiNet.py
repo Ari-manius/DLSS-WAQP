@@ -57,7 +57,7 @@ def calculate_pagerank():
     log_progress("  Computing Pagerank...")
     return gt.pagerank(G_tool, epsilon=1e-4, max_iter=1000)
 
-def calculate_katz():
+def calculate_katz(): #find efficient alternative 
     log_progress("  Computing Katz...")
     return gt.katz(G_tool, alpha=0.01, max_iter=1000, epsilon=1e-6)
 
@@ -74,17 +74,28 @@ def calculate_core_numbers():
     return gt.kcore_decomposition(G_tool)
 
 def calculate_betweenness():
-    print("Betweenness (approximated)")
-    return gt.betweenness(G_tool, norm=False)
+    log_progress("  Computing Betweenness (approximated)...")
+    return gt.betweenness(G_tool, norm=False, pivots=np.random.choice(G_tool.num_vertices(), size=1000))[0] 
 
 def calculate_node_reciprocity():
-    print("Reciprocity")
-    A = gt.adjacency(G_tool)
-    mutual_matrix = A.multiply(A.T)
-    out_degrees = np.array(A.sum(axis=1)).flatten()
-    in_degrees = np.array(A.sum(axis=0)).flatten()
+    log_progress("  Computing Reciprocity...")
     
-    mutual_out = np.array(mutual_matrix.sum(axis=1)).flatten()
+    # Pre-allocate arrays
+    num_vertices = G_tool.num_vertices()
+    mutual_out = np.zeros(num_vertices)
+    out_degrees = np.zeros(num_vertices)
+    in_degrees = np.zeros(num_vertices)
+    
+    # Count degrees and mutual connections in one pass
+    for v in G_tool.vertices():
+        v_idx = int(v)
+        out_neighbors = set(int(u) for u in v.out_neighbors())
+        in_neighbors = set(int(u) for u in v.in_neighbors())
+        
+        out_degrees[v_idx] = len(out_neighbors)
+        in_degrees[v_idx] = len(in_neighbors)
+        mutual_out[v_idx] = len(out_neighbors & in_neighbors)
+    
     max_degrees = np.maximum(in_degrees, out_degrees)
     
     return np.divide(mutual_out, max_degrees, 
@@ -98,7 +109,7 @@ out_degrees = G_tool.get_out_degrees(vertices)
 # Parallelize independent calculations
 with ThreadPoolExecutor(max_workers=2) as executor:
     pagerank_future = executor.submit(calculate_pagerank)
-    #katz_future = executor.submit(calculate_katz)
+    #katz_future = executor.submit(calculate_katz) 
     hits_future = executor.submit(calculate_hits)
     clustering_future = executor.submit(calculate_clustering)
     core_future = executor.submit(calculate_core_numbers)
@@ -131,19 +142,20 @@ df_wikinetmetrics = pl.DataFrame({
 })
 
 ### Spectral Embedding
-log_progress("[5/8] Computing Spectral Embedding...")
+log_progress("[5/8] Computing Spectral Graph Properties...")
 
+log_progress("  Sprectral Embedding...")
 adj_sparse = gt.adjacency(G_tool, weight=None)
-print("Making adjacency matrix symmetric...")
+print("   Making adjacency matrix symmetric...")
 adj_symmetric = adj_sparse + adj_sparse.T
 
-print("Computing normalized Laplacian...")
+print("    Computing normalized Laplacian...")
 degrees = np.array(adj_symmetric.sum(axis=1)).flatten()
 degrees = np.maximum(degrees, 1e-8)
 D_inv_sqrt = sp.sparse.diags(1.0 / np.sqrt(degrees), format='csr')
 L_norm = sp.sparse.eye(adj_symmetric.shape[0]) - D_inv_sqrt @ adj_symmetric @ D_inv_sqrt
 
-print("Computing smallest eigenvalues...")
+print("    Computing smallest eigenvalues...")
 eigenvals, eigenvecs = eigsh(L_norm, k=9, which='SM', maxiter=500)
 embedding_full = eigenvecs[:, 1:]  
 
@@ -158,6 +170,7 @@ df_wikinetmetrics = df_wikinetmetrics.with_columns([
     pl.Series("spectral_embedding_8", embedding_full[:, 7]),
 ])
 
+log_progress("  Sprectral Transition...")
 def compute_transition_features_efficiently(G):
     entropy_features = []
     max_prob_features = []
@@ -200,6 +213,7 @@ df_wikinetmetrics = df_wikinetmetrics.with_columns([
     #pl.Series("transition_concentration", concentration_feat) #removed due to Correlation Evaluation
 ])
 
+log_progress("  Sprectral Modularity...")
 def compute_modularity_features_efficiently(G):
     diagonal_features = []
     row_sum_features = []

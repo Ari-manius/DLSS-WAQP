@@ -332,7 +332,7 @@ def filter_and_scale_properties(
             # Adaptive n_quantiles based on data size and uniqueness
             n_samples = feature_matrix_clean.shape[0]
             n_unique_vals = len(np.unique(feature_matrix_clean.flatten()))
-            n_quantiles = min(1000, n_unique_vals, n_samples // 2)
+            n_quantiles = min(500, n_unique_vals, n_samples // 2)
             n_quantiles = max(10, n_quantiles)  # Minimum 10 quantiles
             
             if verbose:
@@ -496,14 +496,14 @@ def load_gt_for_pytorch(
         df_scaled['node_id'] = range(len(df_scaled))
         
         # Save as parquet
-        parquet_path = f"data/scaled_data_{scaling_method}_{target_variable}.parquet"
+        parquet_path = f"../1_WikiDataNet/data/scaled_data_{scaling_method}_{target_variable}.parquet"
         df_scaled.to_parquet(parquet_path, index=False)
         print(f"Saved scaled data to: {parquet_path}")
     
     return data, filtered_data
 
 
-# Execute the data preparation
+#Execute the data preparation
 # data_filtered_1, scaling_info_1 = load_gt_for_pytorch(
 #     "../1_WikiDataNet/data/G_wiki.gt", 
 #     target_variable="Target_QC_aggcat",
@@ -525,16 +525,16 @@ def load_gt_for_pytorch(
 # print(f"Feature name: {scaling_info_1['feature_names']}")
 # print(f"Target name: {scaling_info_1['target_name']}")
 
-# Execute the data preparation
-data_filtered_3, scaling_info_3 = load_gt_for_pytorch(
-    "../1_WikiDataNet/data/G_wiki.gt", 
-    target_variable="Target_QC_aggcat",
-    scaling_method='log_robust',
-    verbose=True
-)
-print(f"Features: {data_filtered_3.x.shape}")
-print(f"Feature name: {scaling_info_3['feature_names']}")
-print(f"Target name: {scaling_info_3['target_name']}")
+# # Execute the data preparation
+# data_filtered_3, scaling_info_3 = load_gt_for_pytorch(
+#     "../1_WikiDataNet/data/G_wiki.gt", 
+#     target_variable="Target_QC_aggcat",
+#     scaling_method='log_robust',
+#     verbose=True
+# )
+# print(f"Features: {data_filtered_3.x.shape}")
+# print(f"Feature name: {scaling_info_3['feature_names']}")
+# print(f"Target name: {scaling_info_3['target_name']}")
 
 # Execute the data preparation
 data_filtered_4, scaling_info_4 = load_gt_for_pytorch(
