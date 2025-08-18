@@ -208,12 +208,30 @@
       },
       "timestamp": "2025-08-18T11:50:10.042649",
       "is_best": true
+    },
+    {
+      "trial_num": 3,
+      "value": 0.0,
+      "params": {
+        "hidden_dim": 64,
+        "num_layers": 3,
+        "dropout": 0.4425747753342467,
+        "weight_decay": 0.00033492652925657036,
+        "heads": 8,
+        "lr": 0.0005124477083990769,
+        "focal_alpha": 2.9281925545894025,
+        "focal_gamma": 3.5302091064998296,
+        "oversample_strategy": "boosted",
+        "min_samples_factor": 2
+      },
+      "timestamp": "2025-08-18T12:07:49.740435",
+      "is_best": true
     }
   ],
   "metadata": {
     "model_type": "gat",
-    "total_trials": 12,
+    "total_trials": 13,
     "best_value": 0.0,
-    "last_updated": "2025-08-18T11:50:10.042682"
+    "last_updated": "2025-08-18T12:07:49.740496"
   }
 }

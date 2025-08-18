@@ -478,7 +478,7 @@ def load_gt_for_pytorch(
     
 
     # Save PyTorch data
-    torch.save(data, f"data/data_{scaling_method}_{target_variable}.pt")
+    torch.save(data, f"../2_GNN_Training/data/data_{scaling_method}_{target_variable}.pt")
     
     # Save scaled data as parquet
     if filtered_data['features'] is not None:
@@ -496,7 +496,7 @@ def load_gt_for_pytorch(
         df_scaled['node_id'] = range(len(df_scaled))
         
         # Save as parquet
-        parquet_path = f"../1_WikiDataNet/data/scaled_data_{scaling_method}_{target_variable}.parquet"
+        parquet_path = f"data/scaled_data_{scaling_method}_{target_variable}.parquet"
         df_scaled.to_parquet(parquet_path, index=False)
         print(f"Saved scaled data to: {parquet_path}")
     
@@ -538,7 +538,7 @@ def load_gt_for_pytorch(
 
 # Execute the data preparation
 data_filtered_4, scaling_info_4 = load_gt_for_pytorch(
-    "../1_WikiDataNet/data/G_wiki.gt", 
+    "data/G_wiki.gt", 
     target_variable="Target_QC_aggcat",
     scaling_method='quantile',
     verbose=True
