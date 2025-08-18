@@ -3,4 +3,5 @@ data/
 *.csv
 *.pt
 *.gt
-*.parquet
+*.parquet.DS_Store
+**/.DS_Store
