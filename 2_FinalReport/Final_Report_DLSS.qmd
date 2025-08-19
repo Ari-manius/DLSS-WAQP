@@ -74,7 +74,65 @@ Together, these studies highlight the progression from handcrafted features to m
 
 ## Dataset Description
 
-(Features and Target Variable, Article based)
+Features:
+A dataset of 379,926 English Wikipedia articles was assembled to support the quality prediction task. The collection combines article-level features with editing history, allowing both structural and behavioral dimensions of quality to be examined. Articles span all major quality classes, from Stub to Featured Article (FA), which ensures that the dataset covers a broad range of writing styles, completeness levels, and editorial efforts.
+The design of this dataset is informed by previous research on Wikipedia quality. Earlier studies have focused on text features, structural elements, and editorial history (Bassani & Viviani, 2019), multimodal features such as images and metadata (Reddy et al., 2020), and verifiability signals like citation practices (Redi et al., 2019). In parallel, graph-based datasets such as Wiki-CS (Mernyei & Cangea, 2020) have highlighted the potential of network structures for modeling knowledge propagation. Drawing on these insights, the dataset integrates both content- and network-oriented variables to enable analysis from multiple perspectives.
+For each article, descriptive features such as page length, number of references, sections, templates, and infobox presence were recorded. Structural metadata such as categories, links, and depth in the category hierarchy were also included. In addition, editorial activity was carefully tracked: edit counts were separated into human and bot contributions, and further divided by registered, anonymous, and automated accounts. To capture recent editing patterns, all edit-related variables were restricted to the last two years. This ensures that the dataset reflects up-to-date collaborative dynamics rather than the full historical record.
+```{r}
+library(knitr)
+library(dplyr)
+
+# Define variables, categories, and definitions
+vars <- tribble(
+  ~Category, ~Variable, ~Definition,
+  "Structure","num_categories","Number of categories assigned to the article.",
+  "Structure","num_links","Total number of internal/external links.",
+  "Structure","page_length","Length of the article (characters).",
+  "Structure","num_references","Number of citations in the article.",
+  "Structure","num_sections","Number of sections.",
+  "Structure","num_templates","Number of templates used.",
+  "Structure","has_infobox_encoded","1 if an infobox exists, otherwise 0.",
+  "Structure","protection_status_encoded","Encoded protection level.",
+  "Style / Semantic","assessment_source_umap_1","UMAP dim 1 of assessment source.",
+  "Style / Semantic","assessment_source_umap_2","UMAP dim 2 of assessment source.",
+  "Style / Semantic","assessment_source_umap_3","UMAP dim 3 of assessment source.",
+  "Network","days_since_last_edit","Days since the last edit.",
+  "Network","edits_all_types","Total edits (last two years).",
+  "Network","edits_anonymous","Anonymous edits (last two years).",
+  "Network","edits_bot","Bot edits (last two years).",
+  "Network","edits_group_bot","Group-bot edits (last two years).",
+  "Network","edits_human","Human edits (last two years).",
+  "Network","edits_name_bot","Named-bot edits (last two years).",
+  "Network","edits_user","Registered-user edits (last two years).",
+  "Network","pageviews_Jul2023Jul2024","Pageviews from Jul 2023–Jul 2024."
+)
+
+# Render table
+kable(vars, caption = "Variables grouped by category with their definitions")
+```
+Target Variable
+Wikipedia articles are rated on an ordinal quality scale. In this project the following classes are used as the target: FA, FL, FM, A, GA, B, C, Start, Stub, List.
+```{r}
+library(knitr)
+library(dplyr)
+
+quality_classes <- tribble(
+  ~Class, ~Meaning,
+  "FA", "Featured Article – highest quality, comprehensive and well-sourced",
+  "FL", "Featured List – best-quality lists, complete and well-referenced",
+  "FM", "Featured Media – high-quality non-textual media (images, videos, etc.)",
+  "A", "Near-featured quality, but may need minor improvements",
+  "GA", "Good Article – accurate, well-structured, but less comprehensive than FA",
+  "B", "Mostly complete, but still lacking references or polish",
+  "C", "Useful coverage, but incomplete or missing important details",
+  "Start", "Basic coverage, underdeveloped but beyond stub level",
+  "Stub", "Very short or incomplete article, minimal information",
+  "List", "Articles in list format, assessed on completeness and structure"
+)
+
+kable(quality_classes, caption = "Wikipedia quality assessment classes and their meaning")
+```
+
 
 ## Wikipedia Network
 
