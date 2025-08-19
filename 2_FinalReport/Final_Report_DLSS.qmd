@@ -110,6 +110,8 @@ vars <- tribble(
 # Render table
 kable(vars, caption = "Variables grouped by category with their definitions")
 ```
+### Edges
+......
 ### Target Variable
 Wikipedia articles are rated on an ordinal quality scale. In this project the following classes are used as the target: FA, FL, FM, A, GA, B, C, Start, Stub, List.
 ```{r}
@@ -132,13 +134,15 @@ quality_classes <- tribble(
 
 kable(quality_classes, caption = "Wikipedia quality assessment classes and their meaning")
 ```
-##Data Collection
+## Data Collection
 For this project, four complementary data sources were used to capture different aspects of Wikipedia articles. The Wikipedia Dump provided raw text and structural information. The Pageviews API measured popularity and user attention. The Edit History API tracked editorial activity patterns, including user and bot edits. Finally, the Wikipedia API enabled article crawling and the construction of article networks. Together, these sources ensured a comprehensive dataset covering content, usage, editing behavior, and network structure.
 ### Page IDs
 Article titles were retrieved from Wikipedia based on their page IDs. Since the MediaWiki API only allows up to 50 IDs per request, page IDs were split into chunks of 50. Each chunk was queried in parallel using ThreadPoolExecutor, and the resulting titles were mapped back to the original dataframe. The updated dataset, containing both pageid and title, was saved as a CSV file for further processing.
 Add more ………………….
 ### Text Features
 …… 
+### Edges
+.....
 ### Article Titles
 A dedicated script retrieved article titles from Wikipedia by mapping page IDs to titles. Requests were executed in parallel to speed up the process, and results were stored for integration into downstream analyses.
 ### Pageviews
@@ -179,6 +183,62 @@ To ensure stable model training, node features were standardized using multiple 
 Target variables were selected from node attributes with the prefix Target_, with Target_QC_aggcat used as the primary label for classification tasks. For each processed graph, two outputs were stored: a PyTorch tensor dataset (.pt file) for direct GNN training and a Parquet file containing scaled features and targets for inspection and debugging.
 
 This preprocessing pipeline produced a clean, scalable dataset ready for downstream graph-based learning on Wikipedia article quality prediction.
+
+## Data Exploration
+The dataset contains around 380,000 Wikipedia articles annotated with quality classes. The distribution is highly imbalanced, with the majority of articles in low-quality classes (Stub and Start) and only a small fraction in high-quality categories (FA, GA, FL, A).
+Quality Distribution and Metrics
+A clear progression is observed across classes: higher-quality articles (FA, GA, A) are much longer, contain significantly more references, links, and sections, while Stub and Start articles remain short and sparsely referenced. This confirms that structural richness and citation density strongly align with editorial quality.
+```{r}
+library(tibble)
+library(dplyr)
+library(scales)
+library(knitr)
+
+tbl <- tribble(
+  ~`Quality Class`, ~Count, ~`Avg. Page Length`, ~`Avg. References`, ~`Avg. Links`, ~`Avg. Sections`,
+  "A",     113,    60096.51,  97.15, 386.11, 17.62,
+  "B",   29768,    61135.93,  96.63, 422.76, 21.02,
+  "C",   74983,    33138.79,  47.86, 285.05, 14.69,
+  "FA",   1582,    89048.49, 142.50, 514.55, 21.72,
+  "FL",    320,    58989.33,  87.65, 370.57, 11.29,
+  "GA",   5934,    64000.73, 115.96, 395.99, 17.88,
+  "List", 13161,   29490.59,  29.69, 368.69, 13.75,
+  "Start",162145,  14064.61,  17.70, 179.28,  8.25,
+  "Stub", 91920,    5878.57,   6.29, 143.61,  4.21
+) |>
+  mutate(
+    Count = comma(Count),
+    `Avg. Page Length` = comma(`Avg. Page Length`, accuracy = 0.01),
+    `Avg. References`  = number(`Avg. References`,  accuracy = 0.01),
+    `Avg. Links`       = number(`Avg. Links`,       accuracy = 0.01),
+    `Avg. Sections`    = number(`Avg. Sections`,    accuracy = 0.01)
+  )
+
+kable(tbl, caption = "Quality classes and average structural metrics.")
+```
+![](images/quality_distribution.png)
+
+## Feature Correlations and Relationships
+The heatmap shows strong correlations between page length, references, and sections, with the highest between page length and references (0.86). This indicates that longer articles tend to be better structured and more referenced. Links are positively correlated but capture partly independent information.
+The scatter plot (log–log scale) of links vs. references confirms a positive trend: articles with more links usually also include more references, though variation exists. This shows that links and references represent complementary aspects of article richness.
+![](images/features_corr.png)
+
+## Feature Distributions
+Key features such as page length, number of references, links, sections, pageviews, and recency of edits are highly skewed, with most articles clustered at the lower end and a few outliers extending to extreme values. This highlights the heterogeneity of Wikipedia, where a small subset of articles dominates in depth and attention.
+![](images/features_dis.png)
+
+## Pageviews by Quality
+Pageviews vary widely across classes. While Featured Articles (FA) and Good Articles (GA) generally attract higher median views, many B-class and even lower-quality articles also reach high visibility. This suggests that popularity is not fully aligned with editorial quality — articles can be widely read even if their structural quality is limited.
+![](images/pageview.png)
+
+## Network and Edit Structure
+The network comprises over 28 million edges, connecting around 380,000 nodes (articles). Average in- and out-degree is about 75, but some nodes show extreme centrality, with the most linked article having an in-degree above 76,000. The dataset also reflects class imbalance, with two-thirds of articles in Stub/Start classes and only ~2% in high-quality classes (FA/FL/GA). Protection status shows that most articles are unprotected, while only a handful are fully protected.
+Edit histories reveal that articles have a wide range of editorial activity: the median article has fewer than 10 edits, while some exceed 18,000 edits, often driven by human contributors but with noticeable bot involvement as well.
+
+##Feature Relationships
+Pairwise feature comparisons show clear clustering by quality: high-quality articles combine length, references, links, and sections in consistent proportions, while low-quality articles remain compact across all dimensions. Pageviews and recency of edits add further variation but only partially align with quality, reinforcing that structural completeness and editorial effort are the strongest signals of quality.
+![](images/relation_by_quality.png)
+
 
 
 ## Wikipedia Network
