@@ -132,6 +132,22 @@ quality_classes <- tribble(
 
 kable(quality_classes, caption = "Wikipedia quality assessment classes and their meaning")
 ```
+##Data Collection
+For this project, four complementary data sources were used to capture different aspects of Wikipedia articles. The Wikipedia Dump provided raw text and structural information. The Pageviews API measured popularity and user attention. The Edit History API tracked editorial activity patterns, including user and bot edits. Finally, the Wikipedia API enabled article crawling and the construction of article networks. Together, these sources ensured a comprehensive dataset covering content, usage, editing behavior, and network structure.
+Page IDs
+Article titles were retrieved from Wikipedia based on their page IDs. Since the MediaWiki API only allows up to 50 IDs per request, page IDs were split into chunks of 50. Each chunk was queried in parallel using ThreadPoolExecutor, and the resulting titles were mapped back to the original dataframe. The updated dataset, containing both pageid and title, was saved as a CSV file for further processing.
+Add more ………………….
+Text Features
+…… 
+Article Titles
+A dedicated script retrieved article titles from Wikipedia by mapping page IDs to titles. Requests were executed in parallel to speed up the process, and results were stored for integration into downstream analyses.
+Pageviews
+One year of pageview data (July 2023–July 2024) was collected for each article. Monthly user pageviews were retrieved from the Wikimedia REST API and aggregated into annual totals. To improve efficiency, requests were executed in parallel with ThreadPoolExecutor, and progress was tracked with tqdm. Results were incrementally written back to the dataset to avoid data loss in case of interruptions. The final dataset, articles_page_view.csv, contains each article with its total pageviews for the year.
+Last Edit
+To obtain temporal metadata, last edit timestamps were collected using the REST API’s /page/summary/{title} endpoint. Article titles from articles_titles.csv were queried with randomized delays (0.3–0.6s) and retry logic for HTTP 429 errors. Parallel requests (via four workers) accelerated collection. Errors and rate limits were logged, and results were stored in final_last_edit.csv, containing article titles and their last edit timestamps.
+Edit Counts
+Wikipedia edit counts (July 2023–July 2025) were collected by editor type: registered users, anonymous users, group bots, and name bots. To comply with Wikimedia’s API limits, randomized delays and proxy rotation were implemented when rate limits occurred. Edits were aggregated into totals and separated into human vs. bot contributions. Parallel processing with ThreadPoolExecutor improved efficiency, while periodic checkpoints ensured progress was saved. The output provides structured edit counts per article for subsequent analysis.
+
 
 
 ## Wikipedia Network
