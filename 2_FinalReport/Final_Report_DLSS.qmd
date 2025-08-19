@@ -2,7 +2,7 @@
 title: "Wikipedia Article Quality Prediction"
 subtitle: "Final Report: DLSS"
 author: 
-  - name: "Nafiß Tavakol, Kuon Ito, Lorenz, Rückert, Marius Helten"
+  - name: "Nafiseh Tavakol, Kuon Ito, Lorenz, Rückert, Marius Helten"
     affiliation: "1406810"
 editor: visual
 date: "`r format(Sys.Date(), '%B %d, %Y')`" 
