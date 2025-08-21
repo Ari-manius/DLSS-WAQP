@@ -18,7 +18,7 @@ def mean_list(class_list):
 
 ######
 print("Loading")
-df_articles = pl.read_csv('data/cleaned_articles_final.csv')
+df_articles = pl.read_csv('data/data_final.csv')
 
 # Create article index dataframe
 df_article_index = pl.DataFrame({
@@ -117,6 +117,15 @@ df_ArticleTargetFeatures = df_articles[["pageid",
                                         "protection_status_encoded",  
                                         "assessment_source_umap_1", 
                                         "assessment_source_umap_2",
-                                        "assessment_source_umap_3"]]
+                                        "assessment_source_umap_3",
+                                        'days_since_last_edit',
+                                        'edits_all_types',
+                                        'edits_anonymous',
+                                        'edits_bot',
+                                        'edits_group_bot',
+                                        'edits_human',
+                                        'edits_name_bot',
+                                        'edits_user',
+                                        'pageviews_Jul2023Jul2024',]]
 
 df_ArticleTargetFeatures.write_parquet("data/wikidata_ready4net.parquet")

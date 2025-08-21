@@ -1,0 +1,17 @@
+{
+  "best_params": {
+    "hidden_dim": 32,
+    "num_layers": 2,
+    "dropout": 0.18356339887881312,
+    "lr": 0.020924262525915973,
+    "weight_decay": 1.6918052803346925e-06,
+    "loss_type": "weighted_ce",
+    "oversample_strategy": "balanced",
+    "min_samples_factor": 4
+  },
+  "best_value": 0.8024444580078125,
+  "n_trials": 10,
+  "model_type": "residual_gcn",
+  "data_file": "data_quantile_Target_QC_aggcat",
+  "timestamp": "20250817_235047"
+}

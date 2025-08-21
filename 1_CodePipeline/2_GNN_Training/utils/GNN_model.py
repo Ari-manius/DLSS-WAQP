@@ -328,23 +328,33 @@ class GraphAttentionNet(torch.nn.Module):
             self.norms.append(LayerNorm(hidden_dim * heads))
         
         # Final layer (no concatenation, average attention heads)
-        if num_layers > 1:
+        if num_layers == 1:
+            # Single layer case: directly map to output
+            self.convs[0] = GATConv(input_dim, output_dim, heads=1, dropout=dropout, concat=False)
+            self.norms[0] = LayerNorm(output_dim)
+        else:
+            # Multi-layer case: add final layer
             self.convs.append(GATConv(hidden_dim * heads, output_dim, heads=1, dropout=dropout, concat=False))
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
         
-        # Apply GAT layers
-        for i in range(len(self.convs) - 1):
-            x = self.convs[i](x, edge_index)
-            x = self.norms[i](x)
-            x = F.elu(x)
-            x = F.dropout(x, p=self.dropout, training=self.training)
-        
-        # Final layer
-        x = self.convs[-1](x, edge_index)
-        
-        return x
+        if self.num_layers == 1:
+            # Single layer: apply directly
+            x = self.convs[0](x, edge_index)
+            return x
+        else:
+            # Multi-layer: apply all hidden layers with activation/dropout, then final layer
+            for i in range(len(self.convs) - 1):
+                x = self.convs[i](x, edge_index)
+                x = self.norms[i](x)
+                x = F.elu(x)
+                x = F.dropout(x, p=self.dropout, training=self.training)
+            
+            # Final layer (no activation/dropout)
+            x = self.convs[-1](x, edge_index)
+            
+            return x
 
 
 class ImprovedGNN(torch.nn.Module):

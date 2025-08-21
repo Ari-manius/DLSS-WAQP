@@ -69,7 +69,7 @@ def train_GNN_model(epochs, model, optimizer, criterion, data, early_stopper, sc
         optimizer.zero_grad()
         
         # Create oversampled training data for this epoch
-        train_indices = torch.where(data.train_mask)[0]
+        train_indices = torch.where(data.train_mask)[0].to(data.x.device)
         train_labels = data.y[train_indices]
         
         # Count samples per class in training set
@@ -91,7 +91,7 @@ def train_GNN_model(epochs, model, optimizer, criterion, data, early_stopper, sc
             
             repeated = class_indices.repeat(n_repeats)
             if remainder > 0:
-                perm_indices = torch.randperm(len(class_indices))[:remainder]
+                perm_indices = torch.randperm(len(class_indices), device=class_indices.device)[:remainder]
                 repeated = torch.cat([repeated, class_indices[perm_indices]])
             oversampled_indices.append(repeated)
         

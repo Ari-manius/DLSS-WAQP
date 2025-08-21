@@ -28,8 +28,9 @@ class EarlyStopping:
     def save_checkpoint(self, val_loss, model):
         """Saves model when validation loss decreases."""
 
-        # Ensure the parent directory exists
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        # Ensure the parent directory exists only if path has a directory
+        if os.path.dirname(self.path):
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
 
         # Save model
         torch.save(model.state_dict(), self.path)

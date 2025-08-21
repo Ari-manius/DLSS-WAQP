@@ -171,7 +171,6 @@ def compute_focal_alpha(targets, method='inverse_freq'):
     alpha = torch.ones(num_classes, device=targets.device)
     
     if method == 'inverse_freq':
-        total_samples = len(targets)
         min_count = counts.min().float()
         
         for i, class_idx in enumerate(unique):
@@ -180,20 +179,26 @@ def compute_focal_alpha(targets, method='inverse_freq'):
     return alpha
 
 
-def smart_oversample_indices(train_indices, train_labels, strategy='balanced', min_samples_factor=3):
+def smart_oversample_indices(train_indices, train_labels, strategy='balanced', min_samples_factor=3, max_total_samples=None):
     """
-    Create oversampling indices with focus on minority classes.
+    Create oversampling indices with focus on minority classes and memory constraints.
     
     Args:
         train_indices: tensor of training node indices
         train_labels: tensor of training labels
         strategy: 'balanced' (equal samples) or 'boosted' (boost minority more)
         min_samples_factor: minimum factor to multiply smallest class
+        max_total_samples: maximum total samples to prevent memory issues
     
     Returns:
         tensor of oversampled indices
     """
     unique_classes, class_counts = torch.unique(train_labels, return_counts=True)
+    original_total = len(train_indices)
+    
+    # Set memory-safe default if not specified
+    if max_total_samples is None:
+        max_total_samples = min(original_total * 5, 50000)  # Cap at 5x original or 50k
     
     if strategy == 'balanced':
         target_count = class_counts.max()
@@ -201,6 +206,15 @@ def smart_oversample_indices(train_indices, train_labels, strategy='balanced', m
         # Boost smallest classes more aggressively
         min_count = class_counts.min()
         target_count = min(class_counts.max(), min_count * min_samples_factor)
+    
+    # Calculate total samples if we use target_count for all classes
+    projected_total = target_count * len(unique_classes)
+    
+    # Scale down if projected total exceeds memory limit
+    if projected_total > max_total_samples:
+        scale_factor = max_total_samples / projected_total
+        target_count = int(target_count * scale_factor)
+        print(f"Scaling down oversampling: target_count reduced to {target_count} to stay within memory limit")
     
     oversampled_indices = []
     
@@ -221,15 +235,26 @@ def smart_oversample_indices(train_indices, train_labels, strategy='balanced', m
             needed_samples = int(current_count * max(1, boost_factor * min_samples_factor))
             needed_samples = min(needed_samples, target_count)
         
+        # Additional safety check per class
+        needed_samples = min(needed_samples, max_total_samples // len(unique_classes))
+        
         # Generate indices with repetition
         n_repeats = needed_samples // current_count
         remainder = needed_samples % current_count
         
         repeated = class_indices.repeat(n_repeats)
         if remainder > 0:
-            perm_indices = torch.randperm(current_count)[:remainder]
+            perm_indices = torch.randperm(current_count, device=class_indices.device)[:remainder]
             repeated = torch.cat([repeated, class_indices[perm_indices]])
         
         oversampled_indices.append(repeated)
     
-    return torch.cat(oversampled_indices)
+    final_indices = torch.cat(oversampled_indices)
+    
+    # Final safety check
+    if len(final_indices) > max_total_samples:
+        perm = torch.randperm(len(final_indices), device=final_indices.device)[:max_total_samples]
+        final_indices = final_indices[perm]
+        print(f"Final safety trim: reduced to {len(final_indices)} samples")
+    
+    return final_indices
