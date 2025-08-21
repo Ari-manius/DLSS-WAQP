@@ -32,6 +32,10 @@ header-includes:
 bibliography: references.bib
 cite-method: citeproc
 link-citations: true
+execute:
+  echo: false
+  warning: false
+  message: false
 ---
 
 ```{r setup, echo = FALSE}
@@ -46,38 +50,36 @@ data_homophily <- read.csv("/Users/ramius/Desktop/CodeVault/01_Project/Uni/DLSS_
 
 # Introduction
 
-Citing this way: [-@hanGraphNeuralNetworks2020], [-@montiFakeNewsDetection2019]
+Wikipedia has become one of the most prominent sources of freely accessible knowledge worldwide, attracting millions of readers across domains such as history, politics, science, and popular culture [-@hortaribeiro2020sudden]. Its openness to user contributions is both a strength—encouraging collaborative knowledge construction—and a weakness, since it may also lead to the creation of low-quality or biased articles [-@bassani2019quality]. While the platform employs a quality grading scheme ranging from Featured Articles (FA) to Stub-class entries to guide improvement efforts [-@warnckewang2015success],[-@bassani2019quality], only a very small fraction of articles meet the highest standards, with just 0.09% classified as FA and 0.5% as Good Articles [-@warnckewang2015success].
 
-Wikipedia has become one of the most prominent sources of freely accessible knowledge worldwide, attracting millions of readers across domains such as history, politics, science, and popular culture [-@hortaRibeiro2020]. Its openness to user contributions is both a strength—encouraging collaborative knowledge construction—and a weakness, since it may also lead to the creation of low-quality or biased articles [-@bassaniQualityWikipedia2020]. While the platform employs a quality grading scheme ranging from Featured Articles (FA) to Stub-class entries to guide improvement efforts [-@warnckeWang2015; -@bassaniQualityWikipedia2020], only a very small fraction of articles meet the highest standards, with just 0.09% classified as FA and 0.5% as Good Articles [-@warnckeWang2015].
+To cope with this challenge, both manual and automated quality assessment approaches have been explored. Human volunteers and WikiProjects monitor articles, but the scale of Wikipedia and the subjectivity of evaluations make this process inconsistent and insufficient [-@bassani2019quality]. Early automated methods relied on handcrafted features of article text , while subsequent research applied machine learning techniques such as doc2vec [-@le2014distributed], BiLSTMs , and multimodal approaches incorporating images and metadata . The Neural Wikipedia Quality Monitor (NwQM) further demonstrated that integrating multiple modalities—including article text, metadata, and talk pages—substantially improves prediction performance [-@reddy2021nwqm]. Similarly, supervised classification frameworks have been developed using syntactic, stylistic, and editorial-history features, combined with labeled ground-truth datasets, to classify articles across the Wikipedia quality scale [-@bassani2019quality].
 
-To cope with this challenge, both manual and automated quality assessment approaches have been explored. Human volunteers and WikiProjects monitor articles, but the scale of Wikipedia and the subjectivity of evaluations make this process inconsistent and insufficient [-@bassaniQualityWikipedia2020]. Early automated methods relied on handcrafted features of article text [-@halfakerGeiger2019], while subsequent research applied machine learning techniques such as doc2vec [-@leMikolov2014], BiLSTMs [-@shen2017], and multimodal approaches incorporating images and metadata [-@shen2019]. The Neural Wikipedia Quality Monitor (NwQM) further demonstrated that integrating multiple modalities—including article text, metadata, and talk pages—substantially improves prediction performance [-@reddyNwQM2020]. Similarly, supervised classification frameworks have been developed using syntactic, stylistic, and editorial-history features, combined with labeled ground-truth datasets, to classify articles across the Wikipedia quality scale [-@bassaniQualityWikipedia2020].
+Another crucial dimension of quality in Wikipedia is verifiability. The Verifiability policy requires that claims be supported by reliable sources, and unsourced material may be challenged with a {citation needed} tag [-@redi2019citation]. Despite this, many articles contain unverified claims, and citation practices among editors are often ad hoc rather than systematic. As of 2019, over 350,000 articles contained at least one {citation needed} flag, but the actual number of unverified statements is likely far higher [-@redi2019citation]. Understanding citation practices is therefore central to ensuring Wikipedia’s reliability, since citations provide a strong signal of article quality and credibility.
 
-Another crucial dimension of quality in Wikipedia is verifiability. The Verifiability policy requires that claims be supported by reliable sources, and unsourced material may be challenged with a {citation needed} tag [-@rediCitationNeeded2019]. Despite this, many articles contain unverified claims, and citation practices among editors are often ad hoc rather than systematic. As of 2019, over 350,000 articles contained at least one {citation needed} flag, but the actual number of unverified statements is likely far higher [-@rediCitationNeeded2019]. Understanding citation practices is therefore central to ensuring Wikipedia’s reliability, since citations provide a strong signal of article quality and credibility.
-
-Recent advances in graph representation learning have created new opportunities to model Wikipedia not only through its textual and editorial features, but also through its citation structures. Graph Neural Networks (GNNs) have proven highly effective at learning from graph-structured data, with applications in semi-supervised node classification and link prediction [-@kipfWelling2016a; -@velickovic2017; -@wu2019]. Traditionally, benchmarks for GNNs have relied on citation networks such as Cora, CiteSeer, and PubMed [-@yang2016]. However, these datasets share similar structural properties and inconsistent training splits, limiting fair evaluation [-@shchur2018; -@klicpera2018]. To address this, the Wiki-CS dataset was introduced as a Wikipedia-based benchmark with higher connectivity and structural diversity, offering a richer environment for testing GNN performance [-@mernyeiWikiCS2020].
+Recent advances in graph representation learning have created new opportunities to model Wikipedia not only through its textual and editorial features, but also through its citation structures. Graph Neural Networks (GNNs) have proven highly effective at learning from graph-structured data, with applications in semi-supervised node classification and link prediction [-@kipf2016semi]. Traditionally, benchmarks for GNNs have relied on citation networks such as Cora, CiteSeer, and PubMed [-@yang2016revisiting]. However, these datasets share similar structural properties and inconsistent training splits, limiting fair evaluation [-@shchur2018pitfalls]. To address this, the Wiki-CS dataset was introduced as a Wikipedia-based benchmark with higher connectivity and structural diversity, offering a richer environment for testing GNN performance [-@mernyei2020wikics].
 
 Building on these insights, this project explores the potential of Wikipedia’s citation networks as a foundation for predicting article quality ratings. By leveraging Graph Neural Networks, we aim to capture how signals of reliability and authority flow through citation structures. This network-oriented perspective complements prior text-based and multimodal approaches, addressing gaps in the literature and offering new insights into the relationship between verifiability, article interconnectedness, and collaborative knowledge quality.
 
-##Related work
+## Related work
 
-Bassani and Viviani [-@bassaniQualityWikipediaArticles2019] proposed a supervised classification approach for Wikipedia article quality, introducing 264 handcrafted features spanning text, review history, and network dimensions. They highlighted the importance of reliable ground truth construction, showing that inconsistencies between labeled and current article versions can reduce accuracy. Their experiments demonstrated that text features were the most effective, while network features contributed less, and that Gradient Boosting achieved the best performance, reaching 62% accuracy in multi-class classification.
+Bassani and Viviani [-@bassani2019quality] proposed a supervised classification approach for Wikipedia article quality, introducing 264 handcrafted features spanning text, review history, and network dimensions. They highlighted the importance of reliable ground truth construction, showing that inconsistencies between labeled and current article versions can reduce accuracy. Their experiments demonstrated that text features were the most effective, while network features contributed less, and that Gradient Boosting achieved the best performance, reaching 62% accuracy in multi-class classification.
 
-Reddy et al. [-@reddyNwQMNeuralQuality2020] introduced NwQM, a neural framework for article quality assessment that integrates text, metadata, and images to build multimodal representations. Unlike earlier approaches relying primarily on structural or handcrafted features [-@halfakerResearchShowcasesObjective2015; -@dangMeasuringQualityWikipedia2016], their model demonstrated an 8% improvement over state-of-the-art methods, establishing the value of multimodal learning in quality prediction.
+Reddy et al. [-@reddy2021nwqm] introduced NwQM, a neural framework for article quality assessment that integrates text, metadata, and images to build multimodal representations. Unlike earlier approaches relying primarily on structural or handcrafted features , their model demonstrated an 8% improvement over state-of-the-art methods, establishing the value of multimodal learning in quality prediction.
 
-Redi et al. [-@rediCitationNeededTaxonomy2019] examined verifiability in Wikipedia by introducing a taxonomy of citation reasons and developing models to predict both citation need and citation purpose. Their findings emphasized that citations are critical for maintaining Wikipedia’s reliability, with certain types of content—such as historical facts, statistics, or reported speech—being particularly likely to require verification.
+Redi et al. [-@redi2019citation] examined verifiability in Wikipedia by introducing a taxonomy of citation reasons and developing models to predict both citation need and citation purpose. Their findings emphasized that citations are critical for maintaining Wikipedia’s reliability, with certain types of content—such as historical facts, statistics, or reported speech—being particularly likely to require verification.
 
-Mernyei and Cangea [-@mernyeiWikiCSWikipediaBasedBenchmark2020] proposed Wiki-CS, a benchmark dataset for evaluating Graph Neural Networks (GNNs). Unlike traditional citation network datasets such as Cora, CiteSeer, or PubMed, Wiki-CS offers higher connectivity and a richer structure, making it a more challenging and diverse testbed. It is primarily used for semi-supervised node classification and provides standardized splits, addressing reproducibility issues in GNN research.
+Mernyei and Cangea [-@mernyei2020wikics] proposed Wiki-CS, a benchmark dataset for evaluating Graph Neural Networks (GNNs). Unlike traditional citation network datasets such as Cora, CiteSeer, or PubMed, Wiki-CS offers higher connectivity and a richer structure, making it a more challenging and diverse testbed. It is primarily used for semi-supervised node classification and provides standardized splits, addressing reproducibility issues in GNN research.
 
 Together, these studies highlight the progression from handcrafted features to multimodal learning and benchmark datasets, and they underscore the importance of verifiability and structured evaluation. Building on these insights, our project focuses on leveraging citation networks and GNNs to capture how quality signals propagate across interconnected articles, thereby offering a complementary network-based perspective on Wikipedia article quality assessment.
 
-# Data Analysis
+## Data Analysis
 
-## Dataset Description
+### Dataset Description
 
 ### Features:
-A dataset of 379,926 English Wikipedia articles was assembled to support the quality prediction task. The collection combines article-level features with editing history, allowing both structural and behavioral dimensions of quality to be examined. Articles span all major quality classes, from Stub to Featured Article (FA), which ensures that the dataset covers a broad range of writing styles, completeness levels, and editorial efforts.
-The design of this dataset is informed by previous research on Wikipedia quality. Earlier studies have focused on text features, structural elements, and editorial history (Bassani & Viviani, 2019), multimodal features such as images and metadata (Reddy et al., 2020), and verifiability signals like citation practices (Redi et al., 2019). In parallel, graph-based datasets such as Wiki-CS (Mernyei & Cangea, 2020) have highlighted the potential of network structures for modeling knowledge propagation. Drawing on these insights, the dataset integrates both content- and network-oriented variables to enable analysis from multiple perspectives.
-For each article, descriptive features such as page length, number of references, sections, templates, and infobox presence were recorded. Structural metadata such as categories, links, and depth in the category hierarchy were also included. In addition, editorial activity was carefully tracked: edit counts were separated into human and bot contributions, and further divided by registered, anonymous, and automated accounts. To capture recent editing patterns, all edit-related variables were restricted to the last two years. This ensures that the dataset reflects up-to-date collaborative dynamics rather than the full historical record.
+
+A dataset of 379,926 English Wikipedia articles was assembled to support the quality prediction task. The collection combines article-level features with editing history, allowing both structural and behavioral dimensions of quality to be examined. Articles span all major quality classes, from Stub to Featured Article (FA), which ensures that the dataset covers a broad range of writing styles, completeness levels, and editorial efforts. The design of this dataset is informed by previous research on Wikipedia quality. Earlier studies have focused on text features, structural elements, and editorial history [-@bassani2019quality], multimodal features such as images and metadata [-@reddy2021nwqm], and verifiability signals like citation practices [-@redi2019citation]. In parallel, graph-based datasets such as Wiki-CS [-@mernyei2020wikics] have highlighted the potential of network structures for modeling knowledge propagation. Drawing on these insights, the dataset integrates both content- and network-oriented variables to enable analysis from multiple perspectives. For each article, descriptive features such as page length, number of references, sections, templates, and infobox presence were recorded. Structural metadata such as categories, links, and depth in the category hierarchy were also included. In addition, editorial activity was carefully tracked: edit counts were separated into human and bot contributions, and further divided by registered, anonymous, and automated accounts. To capture recent editing patterns, all edit-related variables were restricted to the last two years. This ensures that the dataset reflects up-to-date collaborative dynamics rather than the full historical record.
+
 ```{r}
 library(knitr)
 library(dplyr)
@@ -110,10 +112,13 @@ vars <- tribble(
 # Render table
 kable(vars, caption = "Variables grouped by category with their definitions")
 ```
-### Edges
-......
-### Target Variable
+
+### Edges: ...... 
+
+### Target Variable: 
+
 Wikipedia articles are rated on an ordinal quality scale. In this project the following classes are used as the target: FA, FL, FM, A, GA, B, C, Start, Stub, List.
+
 ```{r}
 library(knitr)
 library(dplyr)
@@ -134,60 +139,95 @@ quality_classes <- tribble(
 
 kable(quality_classes, caption = "Wikipedia quality assessment classes and their meaning")
 ```
-## Data Collection
+
+### Data Collection:
+
 For this project, four complementary data sources were used to capture different aspects of Wikipedia articles. The Wikipedia Dump provided raw text and structural information. The Pageviews API measured popularity and user attention. The Edit History API tracked editorial activity patterns, including user and bot edits. Finally, the Wikipedia API enabled article crawling and the construction of article networks. Together, these sources ensured a comprehensive dataset covering content, usage, editing behavior, and network structure.
-### Page IDs
-Article titles were retrieved from Wikipedia based on their page IDs. Since the MediaWiki API only allows up to 50 IDs per request, page IDs were split into chunks of 50. Each chunk was queried in parallel using ThreadPoolExecutor, and the resulting titles were mapped back to the original dataframe. The updated dataset, containing both pageid and title, was saved as a CSV file for further processing.
-Add more ………………….
-### Text Features
-…… 
-### Edges
+
+#### Page IDs:
+
+Article titles were retrieved from Wikipedia based on their page IDs. Since the MediaWiki API only allows up to 50 IDs per request, page IDs were split into chunks of 50. Each chunk was queried in parallel using ThreadPoolExecutor, and the resulting titles were mapped back to the original dataframe. The updated dataset, containing both pageid and title, was saved as a CSV file for further processing. Add more……
+
+#### Text Features:
+
+……
+
+#### Edges:
+
 .....
-### Article Titles
+
+#### Article Titles: 
+
 A dedicated script retrieved article titles from Wikipedia by mapping page IDs to titles. Requests were executed in parallel to speed up the process, and results were stored for integration into downstream analyses.
-### Pageviews
+
+#### Pageviews:
+
 One year of pageview data (July 2023–July 2024) was collected for each article. Monthly user pageviews were retrieved from the Wikimedia REST API and aggregated into annual totals. To improve efficiency, requests were executed in parallel with ThreadPoolExecutor, and progress was tracked with tqdm. Results were incrementally written back to the dataset to avoid data loss in case of interruptions. The final dataset, articles_page_view.csv, contains each article with its total pageviews for the year.
-### Last Edit
+
+#### Last Edit:
+
 To obtain temporal metadata, last edit timestamps were collected using the REST API’s /page/summary/{title} endpoint. Article titles from articles_titles.csv were queried with randomized delays (0.3–0.6s) and retry logic for HTTP 429 errors. Parallel requests (via four workers) accelerated collection. Errors and rate limits were logged, and results were stored in final_last_edit.csv, containing article titles and their last edit timestamps.
-### Edit Counts
+
+#### Edit Counts:
+
 Wikipedia edit counts (July 2023–July 2025) were collected by editor type: registered users, anonymous users, group bots, and name bots. To comply with Wikimedia’s API limits, randomized delays and proxy rotation were implemented when rate limits occurred. Edits were aggregated into totals and separated into human vs. bot contributions. Parallel processing with ThreadPoolExecutor improved efficiency, while periodic checkpoints ensured progress was saved. The output provides structured edit counts per article for subsequent analysis.
 
 ## Article Target Feature Processing
+
 This stage prepared the Wikipedia article dataset for downstream modeling by constructing target labels and engineering structured features.
-### Data Loading and Indexing
+
+#### Data Loading and Indexing:
+
 The dataset was loaded using Polars, and an index was created containing article titles, page IDs, and internal numeric identifiers to support efficient lookup.
-### Target Construction
+
+#### Target Construction 
+
 Each article was mapped to its Wikipedia quality class (FA, GA, B, etc.). From these labels, three target variables were derived:
-•	Target_QC_cat – a 10-level ordinal scale (List=0 … FA=9).
-•	Target_QC_aggcat – a 3-tier aggregate scale (Low, Mid, High).
-•	Target_QC_numlog – a log-transformed numeric variant to smooth scale differences.
-### Feature Encoding
+
+-   Target_QC_cat – a 10-level ordinal scale (List=0 … FA=9).
+
+-   Target_QC_aggcat – a 3-tier aggregate scale (Low, Mid, High).
+
+-   Target_QC_numlog – a log-transformed numeric variant to smooth scale differences.
+
+#### Feature Encoding:
+
 Several categorical and binary attributes were encoded:
-•	Protection status was label-encoded into integers (unprotected=0 … fully_protected=3).
-•	Infobox presence was represented as a binary indicator.
-•	Assessment source was one-hot encoded and reduced via UMAP into three dense components.
-### Feature Selection
+
+-   Protection status was label-encoded into integers (unprotected=0 … fully_protected=3).
+
+-   Infobox presence was represented as a binary indicator.
+
+-   Assessment source was one-hot encoded and reduced via UMAP into three dense components.
+
+#### Feature Selection:
+
 The final feature set integrated multiple dimensions of article characteristics:
-•	Content metrics – page length, number of sections, templates, references, categories, and links.
-•	Editorial activity – days since last edit and edit counts by different user types (e.g., human vs. bot).
-•	Popularity – annual pageviews (July 2023 – July 2024).
+
+-    Content metrics – page length, number of sections, templates, references, categories, and links.
+
+-    Editorial activity – days since last edit and edit counts by different user types (e.g., human vs. bot).
+
+-   Popularity – annual pageviews (July 2023 – July 2024).
 
 The processed dataset combines content structure, editing activity, and popularity indicators, forming a comprehensive feature representation suitable for graph construction and downstream machine learning models.
- 
+
 ## Graph Preparation for GNN Training
 
 To prepare the dataset for Graph Neural Networks (GNNs), the graph-tool format (.gt) was converted into PyTorch Geometric Data objects. The conversion included extracting node features, edge features, and target labels. Node and edge properties of different types (numeric, boolean, categorical) were systematically encoded, with categorical variables handled through either label encoding or one-hot encoding.
 
 To ensure stable model training, node features were standardized using multiple scaling techniques (StandardScaler, MinMaxScaler, RobustScaler, QuantileTransformer, PowerTransformer, and log-based robust scaling). Several variants of the dataset were generated, each reflecting a different scaling method.
 
-Target variables were selected from node attributes with the prefix Target_, with Target_QC_aggcat used as the primary label for classification tasks. For each processed graph, two outputs were stored: a PyTorch tensor dataset (.pt file) for direct GNN training and a Parquet file containing scaled features and targets for inspection and debugging.
+Target variables were selected from node attributes with the prefix Target\_, with Target_QC_aggcat used as the primary label for classification tasks. For each processed graph, two outputs were stored: a PyTorch tensor dataset (.pt file) for direct GNN training and a Parquet file containing scaled features and targets for inspection and debugging.
 
 This preprocessing pipeline produced a clean, scalable dataset ready for downstream graph-based learning on Wikipedia article quality prediction.
 
 ## Data Exploration
-The dataset contains around 380,000 Wikipedia articles annotated with quality classes. The distribution is highly imbalanced, with the majority of articles in low-quality classes (Stub and Start) and only a small fraction in high-quality categories (FA, GA, FL, A).
-Quality Distribution and Metrics
-A clear progression is observed across classes: higher-quality articles (FA, GA, A) are much longer, contain significantly more references, links, and sections, while Stub and Start articles remain short and sparsely referenced. This confirms that structural richness and citation density strongly align with editorial quality.
+
+### Network and Edit Structure
+
+The dataset contains around 380,000 Wikipedia articles annotated with quality classes. The distribution is highly imbalanced, with the majority of articles falling into low-quality categories (Stub and Start), while only a small fraction belong to high-quality classes such as FA, GA, FL, and A. A clear progression is observed across the classes: higher-quality articles are substantially longer, as shown in the page length distributions, and they also tend to include more structural and citation features such as references, links, and sections. By contrast, Stub and Start articles remain short and sparsely referenced, reflecting limited editorial development. This confirms that structural richness and citation density strongly align with editorial quality.
+
 ```{r}
 library(tibble)
 library(dplyr)
@@ -216,30 +256,24 @@ tbl <- tribble(
 
 kable(tbl, caption = "Quality classes and average structural metrics.")
 ```
+
 ![](images/quality_distribution.png)
 
-## Feature Correlations and Relationships
-The heatmap shows strong correlations between page length, references, and sections, with the highest between page length and references (0.86). This indicates that longer articles tend to be better structured and more referenced. Links are positively correlated but capture partly independent information.
-The scatter plot (log–log scale) of links vs. references confirms a positive trend: articles with more links usually also include more references, though variation exists. This shows that links and references represent complementary aspects of article richness.
-![](images/features_corr.png)
+### Feature Correlations and Relationships
 
-## Feature Distributions
-Key features such as page length, number of references, links, sections, pageviews, and recency of edits are highly skewed, with most articles clustered at the lower end and a few outliers extending to extreme values. This highlights the heterogeneity of Wikipedia, where a small subset of articles dominates in depth and attention.
-![](images/features_dis.png)
+The heatmap shows strong correlations between page length, references, and sections, with the highest between page length and references (0.86). This indicates that longer articles tend to be better structured and more referenced. Links are positively correlated but capture partly independent information. The scatter plot (log–log scale) of links vs. references confirms a positive trend: articles with more links usually also include more references, though variation exists. This shows that links and references represent complementary aspects of article richness. ![](images/features_corr.png)
 
-## Pageviews by Quality
-Pageviews vary widely across classes. While Featured Articles (FA) and Good Articles (GA) generally attract higher median views, many B-class and even lower-quality articles also reach high visibility. This suggests that popularity is not fully aligned with editorial quality — articles can be widely read even if their structural quality is limited.
-![](images/pageview.png)
+### Feature Distributions
 
-## Network and Edit Structure
-The network comprises over 28 million edges, connecting around 380,000 nodes (articles). Average in- and out-degree is about 75, but some nodes show extreme centrality, with the most linked article having an in-degree above 76,000. The dataset also reflects class imbalance, with two-thirds of articles in Stub/Start classes and only ~2% in high-quality classes (FA/FL/GA). Protection status shows that most articles are unprotected, while only a handful are fully protected.
-Edit histories reveal that articles have a wide range of editorial activity: the median article has fewer than 10 edits, while some exceed 18,000 edits, often driven by human contributors but with noticeable bot involvement as well.
+Key features such as page length, number of references, links, sections, pageviews, and recency of edits are highly skewed, with most articles clustered at the lower end and a few outliers extending to extreme values. This highlights the heterogeneity of Wikipedia, where a small subset of articles dominates in depth and attention. ![](images/features_dis.png)
 
-##Feature Relationships
-Pairwise feature comparisons show clear clustering by quality: high-quality articles combine length, references, links, and sections in consistent proportions, while low-quality articles remain compact across all dimensions. Pageviews and recency of edits add further variation but only partially align with quality, reinforcing that structural completeness and editorial effort are the strongest signals of quality.
-![](images/relation_by_quality.png)
+### Pageviews by Quality
 
+Pageviews vary widely across classes. While Featured Articles (FA) and Good Articles (GA) generally attract higher median views, many B-class and even lower-quality articles also reach high visibility. This suggests that popularity is not fully aligned with editorial quality, articles can be widely read even if their structural quality is limited. ![](images/pageview.png)
 
+### Feature Relationships
+
+Feature Relationships Pairwise feature comparisons show clear clustering by quality: high-quality articles combine length, references, links, and sections in consistent proportions, while low-quality articles remain compact across all dimensions. Pageviews and recency of edits add further variation but only partially align with quality, reinforcing that structural completeness and editorial effort are the strongest signals of quality. ![](images/relation_by_quality.png)
 
 ## Wikipedia Network
 
