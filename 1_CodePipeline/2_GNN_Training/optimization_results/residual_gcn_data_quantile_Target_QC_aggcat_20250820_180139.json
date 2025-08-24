@@ -1,0 +1,19 @@
+{
+  "best_params": {
+    "dropout": 0.014980697080780925,
+    "weight_decay": 2.9538822944567354e-05,
+    "lr": 0.0017335011238658706,
+    "hidden_dim": 256,
+    "num_layers": 2,
+    "loss_type": "focal",
+    "focal_alpha": 1.1070563940682072,
+    "focal_gamma": 3.953532614013233,
+    "oversample_strategy": "boosted",
+    "min_samples_factor": 4
+  },
+  "best_value": 0.7823333144187927,
+  "n_trials": 16,
+  "model_type": "residual_gcn",
+  "data_file": "data_quantile_Target_QC_aggcat",
+  "timestamp": "20250820_180139"
+}

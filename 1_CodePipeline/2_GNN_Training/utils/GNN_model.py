@@ -4,178 +4,175 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import LayerNorm
 
-class GNN(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim):
-        """
-        Initialize a 2-layer Graph Convolutional Network.
+## Old Models
+# class GNN(torch.nn.Module):
+#     def __init__(self, input_dim, hidden_dim, output_dim):
+#         """
+#         Initialize a 2-layer Graph Convolutional Network.
 
-        Args:
-            input_dim: Number of input features per node
-            hidden_dim: Size of hidden layer (number of features after first convolution)
-            output_dim: Number of output classes (final prediction dimension)
-        """
-        super(GNN, self).__init__()  # Initialize the parent class (torch.nn.Module)
+#         Args:
+#             input_dim: Number of input features per node
+#             hidden_dim: Size of hidden layer (number of features after first convolution)
+#             output_dim: Number of output classes (final prediction dimension)
+#         """
+#         super(GNN, self).__init__()  # Initialize the parent class (torch.nn.Module)
 
-        # First graph convolutional layer
-        # Transforms node features from input_dim to hidden_dim dimensions
-        self.conv1 = GCNConv(input_dim, hidden_dim)
+#         # First graph convolutional layer
+#         # Transforms node features from input_dim to hidden_dim dimensions
+#         self.conv1 = GCNConv(input_dim, hidden_dim)
 
-        # Second graph convolutional layer
-        # Transforms node features from hidden_dim to output_dim dimensions
-        self.conv2 = GCNConv(hidden_dim, output_dim)
+#         # Second graph convolutional layer
+#         # Transforms node features from hidden_dim to output_dim dimensions
+#         self.conv2 = GCNConv(hidden_dim, output_dim)
 
 
-    def forward(self, data):
-        """
-        Forward pass through the network.
+#     def forward(self, data):
+#         """
+#         Forward pass through the network.
 
-        Args:
-            data: PyTorch Geometric Data object containing:
-                - x: Node feature matrix with shape [num_nodes, input_dim]
-                - edge_index: Graph connectivity in COO format with shape [2, num_edges]
-                  where each column [src, dst] represents an edge
+#         Args:
+#             data: PyTorch Geometric Data object containing:
+#                 - x: Node feature matrix with shape [num_nodes, input_dim]
+#                 - edge_index: Graph connectivity in COO format with shape [2, num_edges]
+#                   where each column [src, dst] represents an edge
 
-        Returns:
-            Log probabilities for each class per node
-        """
-        # Extract node features and the graph structure
-        x, edge_index = data.x, data.edge_index
+#         Returns:
+#             Log probabilities for each class per node
+#         """
+#         # Extract node features and the graph structure
+#         x, edge_index = data.x, data.edge_index
 
-        # First convolution layer:
-        # For each node, aggregate features from its neighbors following the GCN formula
-        x = self.conv1(x, edge_index)
+#         # First convolution layer:
+#         # For each node, aggregate features from its neighbors following the GCN formula
+#         x = self.conv1(x, edge_index)
 
-        # Apply ReLU activation to introduce non-linearity
-        x = F.relu(x)
+#         # Apply ReLU activation to introduce non-linearity
+#         x = F.relu(x)
 
-        # Apply dropout for regularization (only active during training)
-        # Randomly zeroes some elements to prevent overfitting
-        x = F.dropout(x, training=self.training)
+#         # Apply dropout for regularization (only active during training)
+#         # Randomly zeroes some elements to prevent overfitting
+#         x = F.dropout(x, training=self.training)
 
-        # Second convolution layer:
-        # Further transform node features using neighbor information
-        x = self.conv2(x, edge_index)
+#         # Second convolution layer:
+#         # Further transform node features using neighbor information
+#         x = self.conv2(x, edge_index)
 
-        return x
+#         return x
     
+# class GNNRegression(torch.nn.Module):
+#     def __init__(self, input_dim, hidden_dim, output_dim=1):
+#         super(GNNRegression, self).__init__()
 
-class GNNRegression(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim=1):
-        super(GNNRegression, self).__init__()
+#         self.conv1 = GCNConv(input_dim, hidden_dim)
+#         self.conv2 = GCNConv(hidden_dim, hidden_dim // 2)
+#         self.conv3 = GCNConv(hidden_dim // 2, output_dim)
 
-        self.conv1 = GCNConv(input_dim, hidden_dim)
-        self.conv2 = GCNConv(hidden_dim, hidden_dim // 2)
-        self.conv3 = GCNConv(hidden_dim // 2, output_dim)
+#     def forward(self, data):
+#         x, edge_index = data.x, data.edge_index
+#         x = self.conv1(x, edge_index)
+#         x = F.relu(x)
+#         x = F.dropout(x, training=self.training)
+#         x = self.conv2(x, edge_index)
+#         x = F.relu(x)
+#         x = F.dropout(x, training=self.training)
+#         x = self.conv3(x, edge_index)
 
-    def forward(self, data):
-        x, edge_index = data.x, data.edge_index
-        x = self.conv1(x, edge_index)
-        x = F.relu(x)
-        x = F.dropout(x, training=self.training)
-        x = self.conv2(x, edge_index)
-        x = F.relu(x)
-        x = F.dropout(x, training=self.training)
-        x = self.conv3(x, edge_index)
-
-        # For regression, output raw continuous values
-        return x  # shape: [num_nodes, output_dim]
+#         # For regression, output raw continuous values
+#         return x  # shape: [num_nodes, output_dim]
     
+# class GraphSAGE_Classification(torch.nn.Module):
+#     def __init__(self, input_dim, hidden_dim, output_dim, dropout=0.5):
+#         super().__init__()
 
-class GraphSAGE_Classification(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, dropout=0.5):
-        super().__init__()
+#         self.conv1 = SAGEConv(input_dim, hidden_dim)
+#         self.bn1 = BatchNorm(hidden_dim)
 
-        self.conv1 = SAGEConv(input_dim, hidden_dim)
-        self.bn1 = BatchNorm(hidden_dim)
+#         self.conv2 = SAGEConv(hidden_dim, hidden_dim // 2)
+#         self.bn2 = BatchNorm(hidden_dim // 2)
 
-        self.conv2 = SAGEConv(hidden_dim, hidden_dim // 2)
-        self.bn2 = BatchNorm(hidden_dim // 2)
+#         self.conv3 = SAGEConv(hidden_dim // 2, output_dim)  # output_dim=2 for binary, >2 for multiclass
 
-        self.conv3 = SAGEConv(hidden_dim // 2, output_dim)  # output_dim=2 for binary, >2 for multiclass
+#         self.dropout = dropout
 
-        self.dropout = dropout
+#     def forward(self, data):
+#         x, edge_index = data.x, data.edge_index
 
-    def forward(self, data):
-        x, edge_index = data.x, data.edge_index
+#         x = self.conv1(x, edge_index)
+#         x = self.bn1(x)
+#         x = F.relu(x)
+#         x = F.dropout(x, p=self.dropout, training=self.training)
 
-        x = self.conv1(x, edge_index)
-        x = self.bn1(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
+#         x = self.conv2(x, edge_index)
+#         x = self.bn2(x)
+#         x = F.relu(x)
+#         x = F.dropout(x, p=self.dropout, training=self.training)
 
-        x = self.conv2(x, edge_index)
-        x = self.bn2(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
+#         x = self.conv3(x, edge_index)
 
-        x = self.conv3(x, edge_index)
+#         return x  # raw logits
 
-        return x  # raw logits
+# class GraphSAGE_Regression(torch.nn.Module):
+#     def __init__(self, input_dim, hidden_dim, dropout=0.5):
+#         super().__init__()
 
+#         self.conv1 = SAGEConv(input_dim, hidden_dim)
+#         self.bn1 = BatchNorm(hidden_dim)
 
-class GraphSAGE_Regression(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, dropout=0.5):
-        super().__init__()
+#         self.conv2 = SAGEConv(hidden_dim, hidden_dim // 2)
+#         self.bn2 = BatchNorm(hidden_dim // 2)
 
-        self.conv1 = SAGEConv(input_dim, hidden_dim)
-        self.bn1 = BatchNorm(hidden_dim)
+#         self.conv3 = SAGEConv(hidden_dim // 2, 1)  # Output single value for regression
 
-        self.conv2 = SAGEConv(hidden_dim, hidden_dim // 2)
-        self.bn2 = BatchNorm(hidden_dim // 2)
+#         self.dropout = dropout
 
-        self.conv3 = SAGEConv(hidden_dim // 2, 1)  # Output single value for regression
+#     def forward(self, data):
+#         x, edge_index = data.x, data.edge_index
 
-        self.dropout = dropout
+#         x = self.conv1(x, edge_index)
+#         x = self.bn1(x)
+#         x = F.relu(x)
+#         x = F.dropout(x, p=self.dropout, training=self.training)
 
-    def forward(self, data):
-        x, edge_index = data.x, data.edge_index
+#         x = self.conv2(x, edge_index)
+#         x = self.bn2(x)
+#         x = F.relu(x)
+#         x = F.dropout(x, p=self.dropout, training=self.training)
 
-        x = self.conv1(x, edge_index)
-        x = self.bn1(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
+#         x = self.conv3(x, edge_index)
 
-        x = self.conv2(x, edge_index)
-        x = self.bn2(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
+#         return x  # keep shape [num_nodes, 1] to match target
 
-        x = self.conv3(x, edge_index)
+# class ImprovedGraphSAGEReg(torch.nn.Module):
+#     def __init__(self, input_dim, hidden_dim=64, dropout=0.5):
+#         super().__init__()
 
-        return x  # keep shape [num_nodes, 1] to match target
+#         self.conv1 = SAGEConv(input_dim, hidden_dim)
+#         self.bn1 = LayerNorm(hidden_dim)
 
-class ImprovedGraphSAGEReg(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim=64, dropout=0.5):
-        super().__init__()
+#         self.conv2 = SAGEConv(hidden_dim, hidden_dim // 2)
+#         self.bn2 = LayerNorm(hidden_dim // 2)
 
-        self.conv1 = SAGEConv(input_dim, hidden_dim)
-        self.bn1 = LayerNorm(hidden_dim)
+#         self.conv3 = SAGEConv(hidden_dim // 2, 1)
 
-        self.conv2 = SAGEConv(hidden_dim, hidden_dim // 2)
-        self.bn2 = LayerNorm(hidden_dim // 2)
+#         self.dropout = dropout
 
-        self.conv3 = SAGEConv(hidden_dim // 2, 1)
+#     def forward(self, data):
+#         x, edge_index = data.x, data.edge_index
 
-        self.dropout = dropout
+#         x = self.conv1(x, edge_index)
+#         x = self.bn1(x)
+#         x = F.gelu(x)
+#         x = F.dropout(x, p=self.dropout, training=self.training)
 
-    def forward(self, data):
-        x, edge_index = data.x, data.edge_index
+#         x = self.conv2(x, edge_index)
+#         x = self.bn2(x)
+#         x = F.gelu(x)
+#         x = F.dropout(x, p=self.dropout, training=self.training)
 
-        x = self.conv1(x, edge_index)
-        x = self.bn1(x)
-        x = F.gelu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
+#         x = self.conv3(x, edge_index)
+#         return x  # keep shape [num_nodes, 1] to match target
 
-        x = self.conv2(x, edge_index)
-        x = self.bn2(x)
-        x = F.gelu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
-
-        x = self.conv3(x, edge_index)
-        return x  # keep shape [num_nodes, 1] to match target
-
-
-##Anomaly Detection
+##Anomaly Detection (Experiment)
 # Only Nodes
 class AnomalyGNN(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim):
@@ -202,8 +199,7 @@ class GraphAutoEncoder(torch.nn.Module):
         return torch.sigmoid(torch.matmul(z, z.t()))  # Edge probabilities
 
 
-# Enhanced Models with Residual Connections and Better Architecture
-
+## New Models 
 class ResidualGCN(torch.nn.Module):
     """
     GCN with residual connections and improved architecture for classification.
@@ -214,7 +210,7 @@ class ResidualGCN(torch.nn.Module):
         self.num_layers = num_layers
         self.dropout = dropout
         
-        # Input projection layer
+        # Input projection layer with improved initialization
         self.input_proj = nn.Linear(input_dim, hidden_dim)
         
         # GCN layers
@@ -232,13 +228,15 @@ class ResidualGCN(torch.nn.Module):
         self.skip_projs = nn.ModuleList()
         for i in range(num_layers):
             self.skip_projs.append(nn.Identity())
+            
+        # Note: Weights initialized by external initialize_weights function
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
         
-        # Input projection
+        # Input projection with better activation
         x = self.input_proj(x)
-        x = F.relu(x)
+        x = F.gelu(x)  # GELU is smoother than ReLU
         
         # GCN layers with residual connections
         for i in range(self.num_layers):
@@ -246,11 +244,12 @@ class ResidualGCN(torch.nn.Module):
             
             x = self.convs[i](x, edge_index)
             x = self.norms[i](x)
-            x = F.relu(x)
+            x = F.gelu(x)  # Consistent activation
             x = F.dropout(x, p=self.dropout, training=self.training)
             
-            # Residual connection
-            x = x + identity
+            # Weighted residual connection for better gradient flow
+            alpha = 0.9  # Slightly favor new information
+            x = alpha * x + (1 - alpha) * identity
         
         # Output projection
         x = self.output_proj(x)
@@ -284,7 +283,7 @@ class ResidualGraphSAGE(torch.nn.Module):
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
         
-        # Input projection
+        # Input projection with normalization
         x = self.input_proj(x)
         x = F.gelu(x)
         
@@ -297,8 +296,9 @@ class ResidualGraphSAGE(torch.nn.Module):
             x = F.gelu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
             
-            # Residual connection
-            x = x + identity
+            # Weighted residual connection
+            alpha = 0.85  # Slightly different weight than GCN
+            x = alpha * x + (1 - alpha) * identity
         
         # Output projection
         x = self.output_proj(x)
@@ -308,51 +308,59 @@ class ResidualGraphSAGE(torch.nn.Module):
 class GraphAttentionNet(torch.nn.Module):
     """
     Graph Attention Network (GAT) implementation for both classification and regression.
+    Enhanced with better dropout strategies and attention mechanisms.
     """
     def __init__(self, input_dim, hidden_dim, output_dim, heads=4, num_layers=2, dropout=0.3):
         super(GraphAttentionNet, self).__init__()
         
         self.num_layers = num_layers
         self.dropout = dropout
+        self.attention_dropout = max(0.1, dropout - 0.1)  # Separate attention dropout
         
         self.convs = nn.ModuleList()
         self.norms = nn.ModuleList()
         
-        # First layer
-        self.convs.append(GATConv(input_dim, hidden_dim, heads=heads, dropout=dropout, concat=True))
-        self.norms.append(LayerNorm(hidden_dim * heads))
-        
-        # Hidden layers
-        for i in range(num_layers - 2):
-            self.convs.append(GATConv(hidden_dim * heads, hidden_dim, heads=heads, dropout=dropout, concat=True))
-            self.norms.append(LayerNorm(hidden_dim * heads))
-        
-        # Final layer (no concatenation, average attention heads)
         if num_layers == 1:
-            # Single layer case: directly map to output
-            self.convs[0] = GATConv(input_dim, output_dim, heads=1, dropout=dropout, concat=False)
-            self.norms[0] = LayerNorm(output_dim)
+            # Single layer case: direct input to output mapping
+            self.convs.append(GATConv(input_dim, output_dim, heads=1, dropout=self.attention_dropout, concat=False))
+            self.norms.append(LayerNorm(output_dim))
         else:
-            # Multi-layer case: add final layer
-            self.convs.append(GATConv(hidden_dim * heads, output_dim, heads=1, dropout=dropout, concat=False))
+            # Multi-layer case: build layers progressively
+            # First layer with separate attention dropout
+            self.convs.append(GATConv(input_dim, hidden_dim, heads=heads, dropout=self.attention_dropout, concat=True))
+            self.norms.append(LayerNorm(hidden_dim * heads))
+            
+            # Hidden layers
+            for i in range(num_layers - 2):
+                self.convs.append(GATConv(hidden_dim * heads, hidden_dim, heads=heads, dropout=self.attention_dropout, concat=True))
+                self.norms.append(LayerNorm(hidden_dim * heads))
+            
+            # Final layer (no concatenation, average attention heads)
+            self.convs.append(GATConv(hidden_dim * heads, output_dim, heads=min(2, heads), dropout=self.attention_dropout, concat=False))
+            
+        # Note: Weights initialized by external initialize_weights function
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
         
         if self.num_layers == 1:
-            # Single layer: apply directly
+            # Single layer: apply with normalization for consistency
             x = self.convs[0](x, edge_index)
+            x = self.norms[0](x)  # Apply normalization for single layer too
             return x
         else:
             # Multi-layer: apply all hidden layers with activation/dropout, then final layer
             for i in range(len(self.convs) - 1):
                 x = self.convs[i](x, edge_index)
                 x = self.norms[i](x)
-                x = F.elu(x)
-                x = F.dropout(x, p=self.dropout, training=self.training)
+                x = F.elu(x)  # ELU works well with attention
+                # Use different dropout rates for different layers
+                layer_dropout = self.dropout * (0.8 + 0.2 * i / max(1, len(self.convs) - 2))
+                x = F.dropout(x, p=layer_dropout, training=self.training)
             
-            # Final layer (no activation/dropout)
+            # Final layer (reduced dropout)
             x = self.convs[-1](x, edge_index)
+            x = F.dropout(x, p=self.dropout * 0.5, training=self.training)
             
             return x
 
@@ -393,14 +401,7 @@ class ImprovedGNN(torch.nn.Module):
         self.output_norm = LayerNorm(hidden_dim)
         self.output_proj = nn.Linear(hidden_dim, output_dim)
         
-        # Initialize weights
-        self.apply(self._init_weights)
-    
-    def _init_weights(self, module):
-        if isinstance(module, nn.Linear):
-            torch.nn.init.xavier_uniform_(module.weight)
-            if module.bias is not None:
-                module.bias.data.zero_()
+        # Note: Weights initialized by external initialize_weights function
     
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
@@ -419,10 +420,14 @@ class ImprovedGNN(torch.nn.Module):
             x = self.convs[i](x, edge_index)
             x = self.norms[i](x)
             x = F.gelu(x)
-            x = F.dropout(x, p=self.dropout, training=self.training)
             
-            # Residual connection
-            x = x + identity
+            # Adaptive dropout - less in later layers for stability
+            layer_dropout = self.dropout * (1.0 - 0.1 * i / max(1, self.num_layers - 1))
+            x = F.dropout(x, p=layer_dropout, training=self.training)
+            
+            # Weighted residual connection for better gradient flow
+            alpha = 0.8 + 0.1 * i / max(1, self.num_layers - 1)  # Slightly more residual in later layers
+            x = alpha * x + (1 - alpha) * identity
         
         # Output
         x = self.output_norm(x)
@@ -459,14 +464,7 @@ class MLPBaseline(torch.nn.Module):
         self.output_norm = LayerNorm(hidden_dim)
         self.output_proj = nn.Linear(hidden_dim, output_dim)
         
-        # Initialize weights
-        self.apply(self._init_weights)
-    
-    def _init_weights(self, module):
-        if isinstance(module, nn.Linear):
-            torch.nn.init.xavier_uniform_(module.weight)
-            if module.bias is not None:
-                module.bias.data.zero_()
+        # Note: Weights initialized by external initialize_weights function
     
     def forward(self, data):
         # Only use node features, ignore graph structure
@@ -485,10 +483,14 @@ class MLPBaseline(torch.nn.Module):
             x = self.layers[i](x)
             x = self.norms[i](x)
             x = F.gelu(x)
-            x = F.dropout(x, p=self.dropout, training=self.training)
             
-            # Residual connection
-            x = x + identity
+            # Adaptive dropout for MLP too
+            layer_dropout = self.dropout * (0.9 + 0.1 * i / max(1, len(self.layers) - 1))
+            x = F.dropout(x, p=layer_dropout, training=self.training)
+            
+            # Weighted residual connection
+            alpha = 0.85
+            x = alpha * x + (1 - alpha) * identity
         
         # Output
         x = self.output_norm(x)

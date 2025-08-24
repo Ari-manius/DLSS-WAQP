@@ -1,0 +1,17 @@
+{
+  "best_params": {
+    "dropout": 0.17682127863707642,
+    "weight_decay": 0.00011646739862905466,
+    "lr": 0.007754905427335538,
+    "hidden_dim": 256,
+    "num_layers": 2,
+    "loss_type": "weighted_ce",
+    "oversample_strategy": "boosted",
+    "min_samples_factor": 2
+  },
+  "best_value": 0.8101111054420471,
+  "n_trials": 16,
+  "model_type": "mlp",
+  "data_file": "data_quantile_Target_QC_aggcat",
+  "timestamp": "20250821_032256"
+}

@@ -187,19 +187,50 @@ tbl <- tribble(
 kable(tbl, caption = "Quality classes and average structural metrics.")
 ```
 
-![](images/quality_distribution.png){width="489" height="180"}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/quality_distribution.png}
+    \caption{Wikipedia Graph - Degree Distribution and Power Law Analysis}
+    \label{fig:pca_combined}
+\end{figure}
 
-The heatmap shows strong correlations among structural features, with the highest between page length and references (0.86), indicating that longer articles are usually better structured and more thoroughly referenced. Links are also positively correlated but provide partly independent information. A log–log scatter plot of links versus references confirms this trend: articles with more links often include more references, though variation remains, showing that links and references capture complementary aspects of article richness. ![](images/features_corr.png){width="458" height="183"}
+The heatmap shows strong correlations among structural features, with the highest between page length and references (0.86), indicating that longer articles are usually better structured and more thoroughly referenced. Links are also positively correlated but provide partly independent information. A log–log scatter plot of links versus references confirms this trend: articles with more links often include more references, though variation remains, showing that links and references capture complementary aspects of article richness.
 
-In Feature Distributions plots, most articles cluster at the low end for page length, references, links, sections, pageviews, and recency of edits, with only a few outliers reaching extreme values—reflecting Wikipedia’s heterogeneity, where a small subset dominates in depth and attention.. ![](images/features_dis.png){width="481" height="298"}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/features_corr.png}
+    \caption{Wikipedia Graph - Degree Distribution and Power Law Analysis}
+    \label{fig:pca_combined}
+\end{figure}
+
+In Feature Distributions plots, most articles cluster at the low end for page length, references, links, sections, pageviews, and recency of edits, with only a few outliers reaching extreme values—reflecting Wikipedia’s heterogeneity, where a small subset dominates in depth and attention.. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/features_dis.png}
+    \caption{Wikipedia Graph - Degree Distribution and Power Law Analysis}
+    \label{fig:pca_combined}
+\end{figure}
 
 Pageviews vary widely across classes. While Featured Articles (FA) and Good Articles (GA) generally attract higher median views, many B-class and even lower-quality articles also reach high visibility. This suggests that popularity is not fully aligned with editorial quality, articles can be widely read even if their structural quality is limited.
 
-![](images/pageview.png){width="292" height="166"}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/pageview.png}
+    \caption{Wikipedia Graph - Degree Distribution and Power Law Analysis}
+    \label{fig:pca_combined}
+\end{figure}
 
 Feature Relationships Pairwise feature comparisons show clear clustering by quality: high-quality articles combine length, references, links, and sections in consistent proportions, while low-quality articles remain compact across all dimensions. Pageviews and recency of edits add further variation but only partially align with quality, reinforcing that structural completeness and editorial effort are the strongest signals of quality.
 
-![](images/clipboard-2781340232.png){width="469" height="322"}
+<!-- ![](images/clipboard-2781340232.png){width="469" height="322"}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/clipboard-2781340232.png}
+    \caption{Wikipedia Graph - Degree Distribution and Power Law Analysis}
+    \label{fig:pca_combined}
+\end{figure} -->
 
 ## Wikipedia Network
 

@@ -122,20 +122,22 @@ def objective(trial, data, model_type='improved_gnn', task_type='classification'
     
     # Hyperparameter search space with model-specific constraints
     params = {
-        'hidden_dim': trial.suggest_categorical('hidden_dim', [32, 64, 128, 256]),
-        'num_layers': trial.suggest_int('num_layers', 2, 4),
-        'dropout': trial.suggest_float('dropout', 0.1, 0.7),
+        'dropout': trial.suggest_float('dropout', 0.01, 0.7),
         'weight_decay': trial.suggest_float('weight_decay', 1e-6, 1e-2, log=True)
     }
     
     # Model-specific parameters and constraints
     if model_type == 'gat':
-        params['heads'] = trial.suggest_categorical('heads', [2, 4, 8])
+        params['heads'] = trial.suggest_categorical('heads', [2, 4, 8, 16])
         # GAT requires lower learning rates due to attention mechanism sensitivity
         params['lr'] = trial.suggest_float('lr', 1e-4, 1e-2, log=True)
+        params['hidden_dim'] = trial.suggest_categorical('hidden_dim', [32, 64, 128])
+        params['num_layers'] = trial.suggest_int('num_layers', 2, 3)
     else:
         # Standard learning rate range for other models
         params['lr'] = trial.suggest_float('lr', 1e-4, 1e-1, log=True)
+        params['hidden_dim'] = trial.suggest_categorical('hidden_dim', [32, 64, 128, 256])
+        params['num_layers'] = trial.suggest_int('num_layers', 2, 5)
     
     # Enhanced loss function parameters for class imbalance
     if task_type == 'classification':
@@ -212,7 +214,8 @@ def objective(trial, data, model_type='improved_gnn', task_type='classification'
             train_params=train_params,
             n_splits=n_splits,
             device=device,
-            verbose=False
+            verbose=False,
+            model_type=model_type
         )
         
         # Calculate objective value focused on minority class performance
@@ -251,7 +254,9 @@ def objective(trial, data, model_type='improved_gnn', task_type='classification'
             logger.error(f"   ❌ {error_msg}")
         else:
             print(error_msg)
-        return float('-inf') if task_type == 'classification' else float('inf')
+        # Return a reasonable penalty value instead of infinity to allow optimization to continue
+        penalty_value = -0.001 if task_type == 'classification' else 1000.0
+        return penalty_value
 
 
 def optimize_hyperparameters(data, model_type='improved_gnn', n_trials=100, 

@@ -1,0 +1,33 @@
+2025-08-21 11:15:31,362 - INFO - Starting optimization for mlp
+2025-08-21 11:15:31,362 - INFO - Log file: optimization_logs/mlp_optimization_20250821_111531.log
+2025-08-21 11:15:31,365 - INFO - 🚀 Starting hyperparameter optimization for mlp
+2025-08-21 11:15:31,365 - INFO - 📋 Configuration:
+2025-08-21 11:15:31,365 - INFO -    Task type: classification
+2025-08-21 11:15:31,365 - INFO -    Trials: 16
+2025-08-21 11:15:31,365 - INFO -    CV folds: 3
+2025-08-21 11:15:31,365 - INFO -    Epochs per trial: 40
+2025-08-21 11:15:31,365 - INFO -    Device: mps
+2025-08-21 11:15:31,365 - INFO -    Direction: maximize
+2025-08-21 11:15:31,368 - INFO - 📊 Class distribution:
+2025-08-21 11:15:31,368 - INFO -    Class 0: 267162 samples (70.3%)
+2025-08-21 11:15:31,369 - INFO -    Class 1: 110786 samples (29.2%)
+2025-08-21 11:15:31,369 - INFO -    Class 2: 1902 samples (0.5%)
+2025-08-21 11:15:31,369 - INFO - 🔍 Starting optimization with 16 trials...
+2025-08-21 11:15:31,369 - INFO - 🔄 Starting trial 0
+2025-08-21 11:15:31,369 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-21 11:15:31,374 - INFO -    📊 Parameters: {'dropout': 0.3289960212071299, 'weight_decay': 0.0003585103368590672, 'lr': 0.07338093475602536, 'hidden_dim': 128, 'num_layers': 5, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-21 11:15:31,374 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-21 11:35:27,047 - INFO -    📈 Results: Overall Acc=0.7012
+2025-08-21 11:35:27,052 - INFO -    ✅ Trial 0 completed successfully
+2025-08-21 11:35:27,052 - INFO - 🎯 Trial 1/16 (6.2%): Score = 0.7012
+2025-08-21 11:35:27,052 - INFO - 🔄 Starting trial 1
+2025-08-21 11:35:27,052 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-21 11:35:27,058 - INFO -    📊 Parameters: {'dropout': 0.075167106127635, 'weight_decay': 0.0003830563530468731, 'lr': 0.003005748308662392, 'hidden_dim': 64, 'num_layers': 3, 'cb_focal_beta': 0.9997980850719678, 'cb_focal_gamma': 3.178485211412336, 'min_class_boost': 2.6193213051306707, 'oversample_strategy': 'balanced', 'min_samples_factor': 4}
+2025-08-21 11:35:27,058 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-21 11:57:18,507 - INFO -    📈 Results: Overall Acc=0.8011
+2025-08-21 11:57:18,513 - INFO -    ✅ Trial 1 completed successfully
+2025-08-21 11:57:18,513 - INFO - 🎯 Trial 2/16 (12.5%): Score = 0.8011
+2025-08-21 11:57:18,513 - INFO - 🔄 Starting trial 2
+2025-08-21 11:57:18,513 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-21 11:57:18,520 - INFO -    📊 Parameters: {'dropout': 0.021583781701333783, 'weight_decay': 0.00016913670270473963, 'lr': 0.002816318737097057, 'hidden_dim': 64, 'num_layers': 2, 'oversample_strategy': 'balanced', 'min_samples_factor': 3}
+2025-08-21 11:57:18,520 - INFO -    🔬 Running 3-fold cross-validation...

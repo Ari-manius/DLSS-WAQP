@@ -4,6 +4,8 @@
 
 A comprehensive GNN-based approach to predict Wikipedia article quality using network topology and content features.
 
+[Processed Data for Exploratory Analysis and GNN Training](https://drive.google.com/drive/folders/1QWCKvZHmtQ5PyUHGaGJVG4RbtXtJJkmh?usp=sharing)
+
 ## 🚀 Quick Start
 
 ```bash

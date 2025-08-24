@@ -114,7 +114,7 @@ class LazyGraphLoader:
             raise ValueError(f"No {mask_type} mask found in data")
         
         test_indices = torch.where(mask)[0]
-        print(f"Found {len(test_indices)} {mask_type} nodes to evaluate")
+        #print(f"Found {len(test_indices)} {mask_type} nodes to evaluate")
         
         # Split into batches
         for i in range(0, len(test_indices), self.batch_size):
@@ -123,13 +123,13 @@ class LazyGraphLoader:
             
             # For GNNs, we need k-hop neighbors, so expand the node set
             # Use only 1-hop neighbors to keep subgraph manageable
-            print("Computing k-hop neighbors...")
+            #print("Computing k-hop neighbors...")
             expanded_indices = self._get_k_hop_neighbors(batch_indices, k=1)
-            print(f"Expanded from {len(batch_indices)} to {len(expanded_indices)} nodes")
+            #print(f"Expanded from {len(batch_indices)} to {len(expanded_indices)} nodes")
             
             # If expansion is still too large, limit it
             if len(expanded_indices) > 50000:  # Reasonable limit
-                print(f"Subgraph too large ({len(expanded_indices)} nodes), using direct batch only")
+                #print(f"Subgraph too large ({len(expanded_indices)} nodes), using direct batch only")
                 expanded_indices = batch_indices
             
             yield batch_indices, expanded_indices
@@ -140,10 +140,10 @@ class LazyGraphLoader:
         current_nodes = set(node_indices.tolist())
         
         # Convert edge_index to more efficient format for lookup
-        print(f"Processing k-hop neighbors for k={k}...")
+        #print(f"Processing k-hop neighbors for k={k}...")
         
         for hop in range(k):
-            print(f"Computing hop {hop + 1}/{k}, current nodes: {len(current_nodes)}")
+            #print(f"Computing hop {hop + 1}/{k}, current nodes: {len(current_nodes)}")
             new_nodes = set()
             
             # More efficient neighbor finding using boolean indexing
@@ -160,7 +160,7 @@ class LazyGraphLoader:
             new_nodes.update(source_neighbors.tolist())
             
             current_nodes.update(new_nodes)
-            print(f"After hop {hop + 1}: {len(current_nodes)} nodes")
+            #print(f"After hop {hop + 1}: {len(current_nodes)} nodes")
         
         return torch.tensor(list(current_nodes), dtype=torch.long)
     

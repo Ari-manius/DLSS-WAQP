@@ -1,0 +1,154 @@
+2025-08-20 15:03:48,812 - INFO - Starting optimization for residual_gcn
+2025-08-20 15:03:48,812 - INFO - Log file: optimization_logs/residual_gcn_optimization_20250820_150348.log
+2025-08-20 15:03:48,813 - INFO - 🚀 Starting hyperparameter optimization for residual_gcn
+2025-08-20 15:03:48,814 - INFO - 📋 Configuration:
+2025-08-20 15:03:48,814 - INFO -    Task type: classification
+2025-08-20 15:03:48,814 - INFO -    Trials: 16
+2025-08-20 15:03:48,814 - INFO -    CV folds: 3
+2025-08-20 15:03:48,814 - INFO -    Epochs per trial: 40
+2025-08-20 15:03:48,814 - INFO -    Device: mps
+2025-08-20 15:03:48,814 - INFO -    Direction: maximize
+2025-08-20 15:03:48,815 - INFO - 📊 Class distribution:
+2025-08-20 15:03:48,815 - INFO -    Class 0: 267162 samples (70.3%)
+2025-08-20 15:03:48,816 - INFO -    Class 1: 110786 samples (29.2%)
+2025-08-20 15:03:48,816 - INFO -    Class 2: 1902 samples (0.5%)
+2025-08-20 15:03:48,816 - INFO - 🔍 Starting optimization with 16 trials...
+2025-08-20 15:03:48,816 - INFO - 🔄 Starting trial 0
+2025-08-20 15:03:48,816 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 15:03:48,819 - INFO -    📊 Parameters: {'dropout': 0.626584760396497, 'weight_decay': 4.151117017002866e-06, 'lr': 0.005776026307462019, 'hidden_dim': 32, 'num_layers': 3, 'oversample_strategy': 'boosted', 'min_samples_factor': 3}
+2025-08-20 15:03:48,819 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 15:13:55,266 - INFO -    📈 Results: Overall Acc=0.7533
+2025-08-20 15:13:55,268 - INFO -    ✅ Trial 0 completed successfully
+2025-08-20 15:13:55,269 - INFO - 🎯 Trial 1/16 (6.2%): Score = 0.7533
+2025-08-20 15:13:55,269 - INFO - 🔄 Starting trial 1
+2025-08-20 15:13:55,269 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 15:13:55,274 - INFO -    📊 Parameters: {'dropout': 0.1955217647934358, 'weight_decay': 2.1267863190149566e-06, 'lr': 0.005201519474644822, 'hidden_dim': 32, 'num_layers': 4, 'cb_focal_beta': 0.9997946150313117, 'cb_focal_gamma': 3.4503954401819454, 'min_class_boost': 2.1550285434696956, 'oversample_strategy': 'balanced', 'min_samples_factor': 2}
+2025-08-20 15:13:55,274 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 15:23:51,841 - INFO -    📈 Results: Overall Acc=0.7601
+2025-08-20 15:23:51,844 - INFO -    ✅ Trial 1 completed successfully
+2025-08-20 15:23:51,844 - INFO - 🎯 Trial 2/16 (12.5%): Score = 0.7601
+2025-08-20 15:23:51,844 - INFO - 🔄 Starting trial 2
+2025-08-20 15:23:51,844 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 15:23:51,849 - INFO -    📊 Parameters: {'dropout': 0.2379943133346384, 'weight_decay': 0.004634178902584547, 'lr': 0.026826055684021185, 'hidden_dim': 64, 'num_layers': 5, 'cb_focal_beta': 0.99911369707501, 'cb_focal_gamma': 2.15533289932669, 'min_class_boost': 3.3443706311049315, 'oversample_strategy': 'boosted', 'min_samples_factor': 3}
+2025-08-20 15:23:51,850 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 15:34:06,640 - INFO -    📈 Results: Overall Acc=0.7367
+2025-08-20 15:34:06,643 - INFO -    ✅ Trial 2 completed successfully
+2025-08-20 15:34:06,644 - INFO - 🎯 Trial 3/16 (18.8%): Score = 0.7367
+2025-08-20 15:34:06,644 - INFO - 🔄 Starting trial 3
+2025-08-20 15:34:06,644 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 15:34:06,649 - INFO -    📊 Parameters: {'dropout': 0.22141943961570798, 'weight_decay': 0.0009219511573900824, 'lr': 0.002020647798959329, 'hidden_dim': 32, 'num_layers': 4, 'oversample_strategy': 'boosted', 'min_samples_factor': 2}
+2025-08-20 15:34:06,649 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 15:45:34,640 - INFO -    📈 Results: Overall Acc=0.7458
+2025-08-20 15:45:34,645 - INFO -    ✅ Trial 3 completed successfully
+2025-08-20 15:45:34,646 - INFO - 🎯 Trial 4/16 (25.0%): Score = 0.7458
+2025-08-20 15:45:34,646 - INFO - 🔄 Starting trial 4
+2025-08-20 15:45:34,646 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 15:45:34,657 - INFO -    📊 Parameters: {'dropout': 0.4716836237416087, 'weight_decay': 0.0004517230433047341, 'lr': 0.039495015269395806, 'hidden_dim': 64, 'num_layers': 4, 'cb_focal_beta': 0.99943083670193, 'cb_focal_gamma': 2.5122588323808293, 'min_class_boost': 2.310654154948657, 'oversample_strategy': 'boosted', 'min_samples_factor': 2}
+2025-08-20 15:45:34,657 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 15:58:47,687 - INFO -    📈 Results: Overall Acc=0.7173
+2025-08-20 15:58:47,692 - INFO -    ✅ Trial 4 completed successfully
+2025-08-20 15:58:47,693 - INFO - 🎯 Trial 5/16 (31.2%): Score = 0.7173
+2025-08-20 15:58:47,694 - INFO - 📊 Progress Update - 5 trials completed
+2025-08-20 15:58:47,694 - INFO -    🏆 Best score so far: 0.7601 (Trial #1)
+2025-08-20 15:58:47,695 - INFO -    ⏱️  ETA: 121.0 minutes remaining
+2025-08-20 15:58:47,695 - INFO - 🔄 Starting trial 5
+2025-08-20 15:58:47,695 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 15:58:47,701 - INFO -    📊 Parameters: {'dropout': 0.6100092657198604, 'weight_decay': 2.6181195941587396e-06, 'lr': 0.0006281647162195427, 'hidden_dim': 128, 'num_layers': 4, 'oversample_strategy': 'boosted', 'min_samples_factor': 3}
+2025-08-20 15:58:47,701 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 16:12:12,860 - INFO -    📈 Results: Overall Acc=0.7314
+2025-08-20 16:12:12,864 - INFO -    ✅ Trial 5 completed successfully
+2025-08-20 16:12:12,864 - INFO - 🎯 Trial 6/16 (37.5%): Score = 0.7314
+2025-08-20 16:12:12,865 - INFO - 🔄 Starting trial 6
+2025-08-20 16:12:12,865 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 16:12:12,870 - INFO -    📊 Parameters: {'dropout': 0.24736580614163564, 'weight_decay': 0.0006245669231512205, 'lr': 0.06723815617705749, 'hidden_dim': 64, 'num_layers': 4, 'cb_focal_beta': 0.9991295583596911, 'cb_focal_gamma': 2.924807564702415, 'min_class_boost': 3.5996195467904575, 'oversample_strategy': 'balanced', 'min_samples_factor': 2}
+2025-08-20 16:12:12,871 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 16:24:48,907 - INFO -    📈 Results: Overall Acc=0.7052
+2025-08-20 16:24:48,911 - INFO -    ✅ Trial 6 completed successfully
+2025-08-20 16:24:48,913 - INFO - 🎯 Trial 7/16 (43.8%): Score = 0.7052
+2025-08-20 16:24:48,913 - INFO - 🔄 Starting trial 7
+2025-08-20 16:24:48,913 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 16:24:48,919 - INFO -    📊 Parameters: {'dropout': 0.24977082472242176, 'weight_decay': 0.008319427373268322, 'lr': 0.0007818210695203368, 'hidden_dim': 256, 'num_layers': 4, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-20 16:24:48,919 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 16:37:06,969 - INFO -    📈 Results: Overall Acc=0.7624
+2025-08-20 16:37:06,973 - INFO -    ✅ Trial 7 completed successfully
+2025-08-20 16:37:06,974 - INFO - 🎯 Trial 8/16 (50.0%): Score = 0.7624
+2025-08-20 16:37:06,974 - INFO - 🔄 Starting trial 8
+2025-08-20 16:37:06,974 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 16:37:06,978 - INFO -    📊 Parameters: {'dropout': 0.2868167611940913, 'weight_decay': 0.005626585161248098, 'lr': 0.00015048085564206974, 'hidden_dim': 64, 'num_layers': 3, 'focal_alpha': 2.7165831945157644, 'focal_gamma': 2.7502622006238453, 'oversample_strategy': 'balanced', 'min_samples_factor': 4}
+2025-08-20 16:37:06,979 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 16:50:49,827 - INFO -    📈 Results: Overall Acc=0.7009
+2025-08-20 16:50:49,831 - INFO -    ✅ Trial 8 completed successfully
+2025-08-20 16:50:49,831 - INFO - 🎯 Trial 9/16 (56.2%): Score = 0.7009
+2025-08-20 16:50:49,832 - INFO - 🔄 Starting trial 9
+2025-08-20 16:50:49,832 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 16:50:49,837 - INFO -    📊 Parameters: {'dropout': 0.47175459281928545, 'weight_decay': 0.0023827300153762125, 'lr': 0.00037613120995714724, 'hidden_dim': 32, 'num_layers': 3, 'oversample_strategy': 'balanced', 'min_samples_factor': 2}
+2025-08-20 16:50:49,837 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 17:01:50,324 - INFO -    📈 Results: Overall Acc=0.7154
+2025-08-20 17:01:50,328 - INFO -    ✅ Trial 9 completed successfully
+2025-08-20 17:01:50,329 - INFO - 🎯 Trial 10/16 (62.5%): Score = 0.7154
+2025-08-20 17:01:50,330 - INFO - 📊 Progress Update - 10 trials completed
+2025-08-20 17:01:50,330 - INFO -    🏆 Best score so far: 0.7624 (Trial #7)
+2025-08-20 17:01:50,332 - INFO -    ⏱️  ETA: 70.8 minutes remaining
+2025-08-20 17:01:50,332 - INFO - 🔄 Starting trial 10
+2025-08-20 17:01:50,332 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 17:01:50,354 - INFO -    📊 Parameters: {'dropout': 0.07855555089787403, 'weight_decay': 3.216238164510407e-05, 'lr': 0.0015335792724022032, 'hidden_dim': 256, 'num_layers': 2, 'focal_alpha': 1.0221805574076224, 'focal_gamma': 3.972213884299199, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-20 17:01:50,354 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 17:12:38,540 - INFO -    📈 Results: Overall Acc=0.7803
+2025-08-20 17:12:38,546 - INFO -    ✅ Trial 10 completed successfully
+2025-08-20 17:12:38,546 - INFO - 🎯 Trial 11/16 (68.8%): Score = 0.7803
+2025-08-20 17:12:38,547 - INFO - 🔄 Starting trial 11
+2025-08-20 17:12:38,547 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 17:12:38,566 - INFO -    📊 Parameters: {'dropout': 0.06255754484827594, 'weight_decay': 3.8970574534524456e-05, 'lr': 0.0008073438177635764, 'hidden_dim': 256, 'num_layers': 2, 'focal_alpha': 1.1127773138159152, 'focal_gamma': 3.9981208381045454, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-20 17:12:38,566 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 17:23:01,840 - INFO -    📈 Results: Overall Acc=0.7772
+2025-08-20 17:23:01,844 - INFO -    ✅ Trial 11 completed successfully
+2025-08-20 17:23:01,844 - INFO - 🎯 Trial 12/16 (75.0%): Score = 0.7772
+2025-08-20 17:23:01,845 - INFO - 🔄 Starting trial 12
+2025-08-20 17:23:01,846 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 17:23:01,864 - INFO -    📊 Parameters: {'dropout': 0.014980697080780925, 'weight_decay': 2.9538822944567354e-05, 'lr': 0.0017335011238658706, 'hidden_dim': 256, 'num_layers': 2, 'focal_alpha': 1.1070563940682072, 'focal_gamma': 3.953532614013233, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-20 17:23:01,864 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 17:33:07,038 - INFO -    📈 Results: Overall Acc=0.7823
+2025-08-20 17:33:07,044 - INFO -    ✅ Trial 12 completed successfully
+2025-08-20 17:33:07,045 - INFO - 🎯 Trial 13/16 (81.2%): Score = 0.7823
+2025-08-20 17:33:07,046 - INFO - 🔄 Starting trial 13
+2025-08-20 17:33:07,046 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 17:33:07,063 - INFO -    📊 Parameters: {'dropout': 0.033412375430825564, 'weight_decay': 2.475173351445546e-05, 'lr': 0.001984629163415648, 'hidden_dim': 256, 'num_layers': 2, 'focal_alpha': 1.021256098846794, 'focal_gamma': 3.9943655855705464, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-20 17:33:07,063 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 17:43:01,594 - INFO -    📈 Results: Overall Acc=0.7820
+2025-08-20 17:43:01,598 - INFO -    ✅ Trial 13 completed successfully
+2025-08-20 17:43:01,598 - INFO - 🎯 Trial 14/16 (87.5%): Score = 0.7820
+2025-08-20 17:43:01,599 - INFO - 🔄 Starting trial 14
+2025-08-20 17:43:01,599 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 17:43:01,616 - INFO -    📊 Parameters: {'dropout': 0.011965126576390428, 'weight_decay': 1.365734529196795e-05, 'lr': 0.012644380394343492, 'hidden_dim': 256, 'num_layers': 2, 'focal_alpha': 1.584916737519162, 'focal_gamma': 3.5191976502641653, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-20 17:43:01,617 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 17:52:16,942 - INFO -    📈 Results: Overall Acc=0.7797
+2025-08-20 17:52:16,947 - INFO -    ✅ Trial 14 completed successfully
+2025-08-20 17:52:16,947 - INFO - 🎯 Trial 15/16 (93.8%): Score = 0.7797
+2025-08-20 17:52:16,949 - INFO - 📊 Progress Update - 15 trials completed
+2025-08-20 17:52:16,949 - INFO -    🏆 Best score so far: 0.7823 (Trial #12)
+2025-08-20 17:52:16,952 - INFO -    ⏱️  ETA: 11.2 minutes remaining
+2025-08-20 17:52:16,952 - INFO - 🔄 Starting trial 15
+2025-08-20 17:52:16,952 - INFO -    Device: mps, Task: classification, CV folds: 3
+2025-08-20 17:52:16,972 - INFO -    📊 Parameters: {'dropout': 0.13092222769912149, 'weight_decay': 0.0001565337003902787, 'lr': 0.003042334894523543, 'hidden_dim': 256, 'num_layers': 2, 'focal_alpha': 1.678053125432866, 'focal_gamma': 3.339026398788634, 'oversample_strategy': 'boosted', 'min_samples_factor': 4}
+2025-08-20 17:52:16,972 - INFO -    🔬 Running 3-fold cross-validation...
+2025-08-20 18:01:39,978 - INFO -    📈 Results: Overall Acc=0.7816
+2025-08-20 18:01:39,981 - INFO -    ✅ Trial 15 completed successfully
+2025-08-20 18:01:39,982 - INFO - 🎯 Trial 16/16 (100.0%): Score = 0.7816
+2025-08-20 18:01:39,983 - INFO - 
+🎉 OPTIMIZATION COMPLETED!
+2025-08-20 18:01:39,983 - INFO - ============================================================
+2025-08-20 18:01:39,983 - INFO - 📋 Summary:
+2025-08-20 18:01:39,984 - INFO -    Total trials: 16
+2025-08-20 18:01:39,984 - INFO -    Best trial: #12
+2025-08-20 18:01:39,984 - INFO -    Best value: 0.7823
+2025-08-20 18:01:39,984 - INFO - 🏆 Best parameters:
+2025-08-20 18:01:39,984 - INFO -    dropout: 0.014980697080780925
+2025-08-20 18:01:39,984 - INFO -    weight_decay: 2.9538822944567354e-05
+2025-08-20 18:01:39,984 - INFO -    lr: 0.0017335011238658706
+2025-08-20 18:01:39,984 - INFO -    hidden_dim: 256
+2025-08-20 18:01:39,984 - INFO -    num_layers: 2
+2025-08-20 18:01:39,984 - INFO -    loss_type: focal
+2025-08-20 18:01:39,984 - INFO -    focal_alpha: 1.1070563940682072
+2025-08-20 18:01:39,984 - INFO -    focal_gamma: 3.953532614013233
+2025-08-20 18:01:39,984 - INFO -    oversample_strategy: boosted
+2025-08-20 18:01:39,984 - INFO -    min_samples_factor: 4

@@ -480,6 +480,52 @@ def load_gt_for_pytorch(
     # Save PyTorch data
     torch.save(data, f"../2_GNN_Training/data/data_{scaling_method}_{target_variable}.pt")
     
+    # Create and save filtered non-network version
+    # Load reference parquet to get non-network feature names
+    try:
+        df_ref = pd.read_parquet("data/wikidata_ready4net.parquet")
+        exclude_patterns = ['pageid', 'Target_']
+        reference_feature_names = []
+        for col in df_ref.columns:
+            if any(pattern.lower() in col.lower() for pattern in exclude_patterns):
+                continue
+            if 'Target_' in col:
+                continue
+            reference_feature_names.append(col)
+        
+        # Filter current features to only those in reference
+        if filtered_data['features'] is not None and filtered_data['feature_names']:
+            available_features = filtered_data['feature_names']
+            matching_features = [f for f in reference_feature_names if f in available_features]
+            matching_indices = [available_features.index(f) for f in matching_features if f in available_features]
+            
+            if matching_indices:
+                # Create filtered feature matrix
+                filtered_features = filtered_data['features'][:, matching_indices]
+                filtered_x = torch.tensor(filtered_features, dtype=torch.float)
+                if device:
+                    filtered_x = filtered_x.to(device)
+                
+                # Create filtered data object
+                data_nonnetwork = Data(
+                    x=filtered_x,
+                    edge_index=edge_index,
+                    edge_attr=None,  # No edge features for non-network version
+                    y=y,
+                    num_nodes=num_nodes
+                )
+                
+                # Save filtered version
+                torch.save(data_nonnetwork, f"../2_GNN_Training/data/data_nonnetwork_{scaling_method}_{target_variable}.pt")
+                
+                if verbose:
+                    print(f"Created non-network version with {len(matching_features)} features: {matching_features}")
+                    print(f"Saved to: ../2_GNN_Training/data/data_nonnetwork_{scaling_method}_{target_variable}.pt")
+            
+    except Exception as e:
+        if verbose:
+            print(f"Could not create non-network version: {e}")
+    
     # Save scaled data as parquet
     if filtered_data['features'] is not None:
         # Create DataFrame with scaled features
@@ -546,3 +592,4 @@ data_filtered_4, scaling_info_4 = load_gt_for_pytorch(
 print(f"Features: {data_filtered_4.x.shape}")
 print(f"Feature name: {scaling_info_4['feature_names']}")
 print(f"Target name: {scaling_info_4['target_name']}")
+

@@ -1,0 +1,20 @@
+{
+  "best_params": {
+    "dropout": 0.11029723535289158,
+    "weight_decay": 4.228465318676635e-06,
+    "lr": 0.01727452299751374,
+    "hidden_dim": 64,
+    "num_layers": 3,
+    "loss_type": "class_balanced_focal",
+    "cb_focal_beta": 0.9993454281517208,
+    "cb_focal_gamma": 3.1259573713127216,
+    "min_class_boost": 4.8399070639349295,
+    "oversample_strategy": "boosted",
+    "min_samples_factor": 4
+  },
+  "best_value": 0.7992222110430399,
+  "n_trials": 16,
+  "model_type": "improved_gnn",
+  "data_file": "data_quantile_Target_QC_aggcat",
+  "timestamp": "20250820_201635"
+}

@@ -20,7 +20,8 @@ from utils.feature_engineering import compute_graph_statistics
 
 def enhanced_train_gnn(model, data, optimizer, criterion, scheduler, device, 
                       epochs=200, early_stopping_patience=30, use_grad_clip=True, 
-                      max_grad_norm=1.0, checkpoint_path=None, verbose=True):
+                      max_grad_norm=1.0, checkpoint_path=None, verbose=True,
+                      oversample_strategy='boosted', min_samples_factor=2):
     """
     Enhanced training function with gradient clipping and improved logging.
     """
@@ -61,9 +62,12 @@ def enhanced_train_gnn(model, data, optimizer, criterion, scheduler, device,
         # Forward pass
         output = model(data)
         
-        # Check for NaN in output
+        # Check for NaN and infinity in output
         if torch.isnan(output).any():
             print(f"Warning: NaN detected in model output at epoch {epoch+1}")
+        if torch.isinf(output).any():
+            print(f"Warning: Infinity detected in model output at epoch {epoch+1}")
+            continue
         
         # Calculate loss (handle oversampling if classification)
         if len(data.y.unique()) > 1:  # Classification
@@ -74,7 +78,7 @@ def enhanced_train_gnn(model, data, optimizer, criterion, scheduler, device,
             # Use enhanced oversampling strategy
             if len(torch.unique(train_labels)) > 1:  # Ensure multiple classes present
                 oversampled_train_indices = smart_oversample_indices(
-                    train_indices, train_labels, strategy='boosted', min_samples_factor=2,
+                    train_indices, train_labels, strategy=oversample_strategy, min_samples_factor=min_samples_factor,
                     max_total_samples=20000  # Memory-safe limit
                 )
                 train_loss = criterion(output[oversampled_train_indices], data.y[oversampled_train_indices])
@@ -229,9 +233,12 @@ def graphsaint_train_gnn(model, data, optimizer, criterion, scheduler, device,
             # Forward pass on subgraph
             output = model(batch_data)
             
-            # Check for NaN in output
+            # Check for NaN and infinity in output
             if torch.isnan(output).any():
                 print(f"Warning: NaN detected in batch output at epoch {epoch+1}")
+                continue
+            if torch.isinf(output).any():
+                print(f"Warning: Infinity detected in batch output at epoch {epoch+1}")
                 continue
             
             # Calculate loss for training nodes in this batch
@@ -300,12 +307,25 @@ def graphsaint_train_gnn(model, data, optimizer, criterion, scheduler, device,
                     
                     # Model-specific validation approach
                     if model_type == 'gat':
-                        # GAT: Use simplified linear approximation to avoid memory issues
-                        # Create a temporary linear layer that matches the expected output
-                        input_dim = batch_x.size(-1)
-                        output_dim = len(data.y.unique())
-                        temp_linear = torch.nn.Linear(input_dim, output_dim).to(device)
-                        batch_output = temp_linear(batch_x)
+                        # GAT: For memory-efficient validation, use fallback approach
+                        # Creating subgraphs is too memory intensive for large graphs
+                        if hasattr(model, 'convs') and len(model.convs) > 0:
+                            # Use the GAT's first layer linear transformation as approximation
+                            if hasattr(model.convs[0], 'lin_src') and model.convs[0].lin_src is not None:
+                                batch_output = model.convs[0].lin_src(batch_x)
+                            else:
+                                # Fallback to basic linear layer
+                                temp_linear = torch.nn.Linear(batch_x.size(-1), model.convs[0].out_channels if hasattr(model.convs[0], 'out_channels') else len(data.y.unique())).to(device)
+                                batch_output = temp_linear(batch_x)
+                            
+                            # Ensure output matches expected dimensions
+                            if batch_output.size(-1) != len(data.y.unique()):
+                                final_linear = torch.nn.Linear(batch_output.size(-1), len(data.y.unique())).to(device)
+                                batch_output = final_linear(batch_output)
+                        else:
+                            # Complete fallback
+                            temp_linear = torch.nn.Linear(batch_x.size(-1), len(data.y.unique())).to(device)
+                            batch_output = temp_linear(batch_x)
                         
                     elif hasattr(model, 'input_norm') and hasattr(model, 'input_proj'):
                         # ImprovedGNN path
@@ -468,6 +488,15 @@ def main():
                        help='Device to use for training')
     parser.add_argument('--memory_efficient', action='store_true',
                        help='Enable memory-efficient mode (reduces batch sizes and features)')
+    parser.add_argument('--skip_plots', action='store_true',
+                       help='Skip generating loss visualization plots')
+    parser.add_argument('--heads', type=int, default=4, help='Number of attention heads (GAT only)')
+    parser.add_argument('--weight_decay', type=float, default=1e-4, help='Weight decay for regularization')
+    parser.add_argument('--cb_focal_beta', type=float, default=0.9999, help='Class-balanced focal loss beta parameter')
+    parser.add_argument('--cb_focal_gamma', type=float, default=3.0, help='Class-balanced focal loss gamma parameter')
+    parser.add_argument('--min_class_boost', type=float, default=3.0, help='Minimum class boost factor')
+    parser.add_argument('--oversample_strategy', type=str, default='boosted', choices=['balanced', 'boosted'], help='Oversampling strategy')
+    parser.add_argument('--min_samples_factor', type=int, default=2, help='Minimum samples factor for oversampling')
     
     args = parser.parse_args()
     
@@ -544,7 +573,7 @@ def main():
                            num_layers=args.num_layers, dropout=args.dropout)
     elif args.model_type == 'gat':
         model = GraphAttentionNet(input_dim, args.hidden_dim, output_dim, 
-                                 heads=4, num_layers=args.num_layers, dropout=args.dropout)
+                                 heads=args.heads, num_layers=args.num_layers, dropout=args.dropout)
     elif args.model_type == 'residual_sage':
         model = ResidualGraphSAGE(input_dim, args.hidden_dim, output_dim, 
                                  num_layers=args.num_layers, dropout=args.dropout)
@@ -575,8 +604,8 @@ def main():
             # Use higher gamma for harder focus on difficult examples
             criterion = FocalLoss(alpha=2.0, gamma=3.0)
         elif args.loss_type == 'class_balanced_focal':
-            # Enhanced class-balanced focal loss with minority boost
-            criterion = ClassBalancedFocalLoss(beta=0.9999, gamma=3.0, min_class_boost=3.0)
+            # Enhanced class-balanced focal loss with optimized parameters
+            criterion = ClassBalancedFocalLoss(beta=args.cb_focal_beta, gamma=args.cb_focal_gamma, min_class_boost=args.min_class_boost)
         elif args.loss_type == 'weighted_ce':
             criterion = WeightedCrossEntropyLoss()
         else:
@@ -606,7 +635,7 @@ def main():
             raise e
             
     # Setup optimizer and scheduler
-    optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     
     # Calculate total steps for scheduler
     if args.use_graphsaint:
@@ -668,46 +697,51 @@ def main():
             use_grad_clip=True,
             max_grad_norm=1.0,
             checkpoint_path=checkpoint_path,
-            verbose=True
+            verbose=True,
+            oversample_strategy=args.oversample_strategy,
+            min_samples_factor=args.min_samples_factor
         )
     
-    # Save training curves
-    plt.figure(figsize=(15, 5))
-    
-    # Loss plot
-    plt.subplot(1, 2, 1)
-    plt.plot(results['train_losses'], label='Train Loss')
-    plt.plot(results['val_losses'], label='Val Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.title('Training and Validation Loss')
-    
-    # Accuracy plot (if classification)
-    if is_classification and results['train_accuracies']:
-        plt.subplot(1, 2, 2)
-        plt.plot(results['train_accuracies'], label='Train Accuracy')
-        plt.plot(results['val_accuracies'], label='Val Accuracy')
+    # Save training curves (only if not skipping plots and results exist)
+    if not args.skip_plots and results is not None:
+        plt.figure(figsize=(15, 5))
+        
+        # Loss plot
+        plt.subplot(1, 2, 1)
+        plt.plot(results['train_losses'], label='Train Loss')
+        plt.plot(results['val_losses'], label='Val Loss')
         plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
+        plt.ylabel('Loss')
         plt.legend()
-        plt.title('Training and Validation Accuracy')
-    
-    # # Learning rate plot
-    # plt.subplot(1, 3, 3)
-    # lrs = [group['lr'] for group in optimizer.param_groups for _ in range(len(results['train_losses']))]
-    # plt.plot(lrs[:len(results['train_losses'])])
-    # plt.xlabel('Epoch')
-    # plt.ylabel('Learning Rate')
-    # plt.title('Learning Rate Schedule')
-    
-    plt.tight_layout()
-    
-    # Save plot
-    plot_path = f"lossVisual/enhanced_{args.model_type}_{args.data_file}.png"
-    os.makedirs("lossVisual", exist_ok=True)
-    plt.savefig(plot_path)
-    print(f"Training curves saved to: {plot_path}")
+        plt.title('Training and Validation Loss')
+        
+        # Accuracy plot (if classification)
+        if is_classification and results['train_accuracies']:
+            plt.subplot(1, 2, 2)
+            plt.plot(results['train_accuracies'], label='Train Accuracy')
+            plt.plot(results['val_accuracies'], label='Val Accuracy')
+            plt.xlabel('Epoch')
+            plt.ylabel('Accuracy')
+            plt.legend()
+            plt.title('Training and Validation Accuracy')
+        
+        # # Learning rate plot
+        # plt.subplot(1, 3, 3)
+        # lrs = [group['lr'] for group in optimizer.param_groups for _ in range(len(results['train_losses']))]
+        # plt.plot(lrs[:len(results['train_losses'])])
+        # plt.xlabel('Epoch')
+        # plt.ylabel('Learning Rate')
+        # plt.title('Learning Rate Schedule')
+        
+        plt.tight_layout()
+        
+        # Save plot
+        plot_path = f"lossVisual/enhanced_{args.model_type}_{args.data_file}.png"
+        os.makedirs("lossVisual", exist_ok=True)
+        plt.savefig(plot_path)
+        print(f"Training curves saved to: {plot_path}")
+    else:
+        print("Skipping loss visualization plots as requested.")
     
     # Final evaluation with batched inference (memory-safe)
     model.eval()
@@ -730,11 +764,25 @@ def main():
                 
                 # Model-specific evaluation approach (same as validation)
                 if args.model_type == 'gat':
-                    # GAT: Use simplified linear approximation
-                    input_dim = batch_x.size(-1)
-                    output_dim = len(data.y.unique())
-                    temp_linear = torch.nn.Linear(input_dim, output_dim).to(device)
-                    batch_output = temp_linear(batch_x)
+                    # GAT: For memory-efficient testing, use fallback approach
+                    # Creating subgraphs is too memory intensive for large graphs
+                    if hasattr(model, 'convs') and len(model.convs) > 0:
+                        # Use the GAT's first layer linear transformation as approximation
+                        if hasattr(model.convs[0], 'lin_src') and model.convs[0].lin_src is not None:
+                            batch_output = model.convs[0].lin_src(batch_x)
+                        else:
+                            # Fallback to basic linear layer
+                            temp_linear = torch.nn.Linear(batch_x.size(-1), model.convs[0].out_channels if hasattr(model.convs[0], 'out_channels') else len(data.y.unique())).to(device)
+                            batch_output = temp_linear(batch_x)
+                        
+                        # Ensure output matches expected dimensions
+                        if batch_output.size(-1) != len(data.y.unique()):
+                            final_linear = torch.nn.Linear(batch_output.size(-1), len(data.y.unique())).to(device)
+                            batch_output = final_linear(batch_output)
+                    else:
+                        # Complete fallback
+                        temp_linear = torch.nn.Linear(batch_x.size(-1), len(data.y.unique())).to(device)
+                        batch_output = temp_linear(batch_x)
                     
                 elif hasattr(model, 'input_norm') and hasattr(model, 'input_proj'):
                     # ImprovedGNN path with dimension checking

@@ -63,8 +63,8 @@ def run_hyperparameter_optimization(data_file, model_types, n_trials=50, n_split
             f"--model_type {model_type} "
             f"--n_trials {n_trials} "
             f"--n_splits {n_splits} "
-            f"--epochs_per_trial 20 "
-            f"--final_epochs 40 "
+            f"--epochs_per_trial 40 "
+            f"--final_epochs 80 "
             f"--device auto"
         )
         
@@ -139,7 +139,7 @@ def run_optimized_training(data_file, model_types, best_params_by_model, use_gra
                 f"--num_layers {params.get('num_layers', 3)} "
                 f"--dropout {params.get('dropout', 0.4)} "
                 f"--lr {params.get('lr', 0.01)} "
-                f"--epochs 10"
+                f"--epochs 80"
             )
             
             # Add loss function parameters
@@ -150,13 +150,13 @@ def run_optimized_training(data_file, model_types, best_params_by_model, use_gra
             if use_graphsaint:
                 # Use memory-efficient batch sizes based on model type
                 if model_type == 'gat':
-                    batch_size = 4000  # GAT is more memory intensive
+                    batch_size = 4096  # GAT is more memory intensive
                 else:
-                    batch_size = 6000  # Other models can handle larger batches
+                    batch_size = 8192  # Other models can handle larger batches
                 base_command += f" --use_graphsaint --batch_size {batch_size} --walk_length 2 --num_steps 8 --memory_efficient"
             
-            # Always add device parameter for automatic selection
-            base_command += " --device auto"
+            # Always add device parameter for automatic selection and skip plots during optimization
+            base_command += " --device auto --skip_plots"
             
             training_commands.append((model_type, base_command))
         else:
@@ -168,16 +168,16 @@ def run_optimized_training(data_file, model_types, best_params_by_model, use_gra
                 f"--data_file {data_file} "
                 f"--model_type {model_type} "
                 f"--loss_type class_balanced_focal "
-                f"--epochs 10"
+                f"--epochs 80"
             )
             
             if use_graphsaint:
                 # Use memory-efficient batch sizes for fallback too
-                fallback_batch_size = 4000 if model_type == 'gat' else 6000
+                fallback_batch_size = 2048 if model_type == 'gat' else 4096
                 fallback_command += f" --use_graphsaint --batch_size {fallback_batch_size} --walk_length 2 --num_steps 8 --memory_efficient"
             
-            # Always add device parameter for automatic selection
-            fallback_command += " --device auto"
+            # Always add device parameter for automatic selection and skip plots during optimization
+            fallback_command += " --device auto --skip_plots"
                 
             training_commands.append((model_type, fallback_command))
     

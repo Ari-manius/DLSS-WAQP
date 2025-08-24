@@ -1,0 +1,20 @@
+{
+  "best_params": {
+    "dropout": 0.6377653929351955,
+    "weight_decay": 7.484867095952016e-05,
+    "heads": 2,
+    "lr": 0.00042922589512766674,
+    "hidden_dim": 128,
+    "num_layers": 3,
+    "loss_type": "focal",
+    "focal_alpha": 2.8268370090586243,
+    "focal_gamma": 3.777986312954977,
+    "oversample_strategy": "boosted",
+    "min_samples_factor": 2
+  },
+  "best_value": 0.40511110921700794,
+  "n_trials": 16,
+  "model_type": "gat",
+  "data_file": "data_quantile_Target_QC_aggcat",
+  "timestamp": "20250821_011429"
+}

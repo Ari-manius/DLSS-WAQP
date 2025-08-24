@@ -41,11 +41,15 @@ def get_fallback_params(model_type):
     fallback_params = {
         'improved_gnn': {
             'hidden_dim': 128, 'num_layers': 3, 'dropout': 0.4,
-            'lr': 0.01, 'weight_decay': 1e-4, 'loss_type': 'class_balanced_focal'
+            'lr': 0.01, 'weight_decay': 1e-4, 'loss_type': 'class_balanced_focal',
+            'cb_focal_beta': 0.9999, 'cb_focal_gamma': 3.0, 'min_class_boost': 3.0,
+            'oversample_strategy': 'boosted', 'min_samples_factor': 2
         },
         'residual_gcn': {
             'hidden_dim': 128, 'num_layers': 3, 'dropout': 0.3,
-            'lr': 0.01, 'weight_decay': 1e-4, 'loss_type': 'class_balanced_focal'
+            'lr': 0.01, 'weight_decay': 1e-4, 'loss_type': 'class_balanced_focal',
+            'cb_focal_beta': 0.9999, 'cb_focal_gamma': 3.0, 'min_class_boost': 3.0,
+            'oversample_strategy': 'boosted', 'min_samples_factor': 2
         },
         'gat': {
             'hidden_dim': 64, 'num_layers': 2, 'heads': 4, 'dropout': 0.5,
@@ -53,9 +57,15 @@ def get_fallback_params(model_type):
         },
         'residual_sage': {
             'hidden_dim': 128, 'num_layers': 3, 'dropout': 0.4,
-            'lr': 0.01, 'weight_decay': 1e-4, 'loss_type': 'class_balanced_focal'
+            'lr': 0.01, 'weight_decay': 1e-4, 'loss_type': 'class_balanced_focal',
+            'cb_focal_beta': 0.9999, 'cb_focal_gamma': 3.0, 'min_class_boost': 3.0,
+            'oversample_strategy': 'boosted', 'min_samples_factor': 2
         },
         'mlp': {
+            'hidden_dim': 256, 'num_layers': 3, 'dropout': 0.5,
+            'lr': 0.01, 'weight_decay': 1e-3, 'loss_type': 'weighted_ce'
+        },
+        'mlp_non_network': {
             'hidden_dim': 256, 'num_layers': 3, 'dropout': 0.5,
             'lr': 0.01, 'weight_decay': 1e-3, 'loss_type': 'weighted_ce'
         }
@@ -91,16 +101,28 @@ def build_training_command(model_type, data_file, epochs=100):
     if 'loss_type' in params:
         cmd += f" --loss_type {params['loss_type']}"
     
+    # Add optimized loss function parameters
+    if 'cb_focal_beta' in params:
+        cmd += f" --cb_focal_beta {params['cb_focal_beta']}"
+    if 'cb_focal_gamma' in params:
+        cmd += f" --cb_focal_gamma {params['cb_focal_gamma']}"
+    if 'min_class_boost' in params:
+        cmd += f" --min_class_boost {params['min_class_boost']}"
+    if 'oversample_strategy' in params:
+        cmd += f" --oversample_strategy {params['oversample_strategy']}"
+    if 'min_samples_factor' in params:
+        cmd += f" --min_samples_factor {params['min_samples_factor']}"
+    
     # GAT-specific parameters
     if model_type == 'gat' and 'heads' in params:
         cmd += f" --heads {params['heads']}"
     
-    # GraphSAINT for memory efficiency (except MLP)
-    if model_type != 'mlp':
+    # GraphSAINT for memory efficiency (except MLP variants)
+    if model_type not in ['mlp', 'mlp_non_network']:
         if model_type == 'gat':
             cmd += " --use_graphsaint --batch_size 2048 --walk_length 2 --num_steps 8"
         else:
-            cmd += " --use_graphsaint --batch_size 6000 --walk_length 2 --num_steps 8"
+            cmd += " --use_graphsaint --batch_size 4096 --walk_length 2 --num_steps 8"
     
     cmd += f" --epochs {epochs} --device auto"
     
@@ -131,7 +153,8 @@ def main():
     
     # Configuration
     data_file = "data_quantile_Target_QC_aggcat"
-    model_types = ['improved_gnn', 'residual_gcn', 'residual_sage', 'gat', 'mlp']
+    non_network_data_file = "data_nonnetwork_quantile_Target_QC_aggcat"
+    model_types = ['improved_gnn', 'residual_gcn', 'residual_sage', 'gat', 'mlp', 'mlp_non_network']
     epochs = 100
     
     # Show available optimization results
@@ -161,17 +184,27 @@ def main():
         print(f"\nStep {i}: Training {model_type} ({i}/{len(model_types)})")
         print("-" * 40)
         
+        # Use non-network dataset for mlp_non_network model
+        current_data_file = non_network_data_file if model_type == 'mlp_non_network' else data_file
+        
         # Build command with optimized parameters
-        command = build_training_command(model_type, data_file, epochs)
+        command = build_training_command(model_type, current_data_file, epochs)
         
         # Show key parameters being used
-        opt_params = get_latest_optimization_results(model_type, data_file)
+        opt_params = get_latest_optimization_results(model_type, current_data_file)
         if not opt_params:
             opt_params = get_fallback_params(model_type)
         
         key_params = ['hidden_dim', 'num_layers', 'lr', 'dropout', 'loss_type']
         param_str = ', '.join([f"{k}={opt_params.get(k, 'N/A')}" for k in key_params if k in opt_params])
         print(f"📊 Parameters: {param_str}")
+        print(f"📁 Data file: {current_data_file}")
+        
+        # Show loss function parameters if using class_balanced_focal
+        if opt_params.get('loss_type') == 'class_balanced_focal':
+            loss_params = ['cb_focal_beta', 'cb_focal_gamma', 'min_class_boost', 'oversample_strategy', 'min_samples_factor']
+            loss_str = ', '.join([f"{k}={opt_params.get(k, 'N/A')}" for k in loss_params if k in opt_params])
+            print(f"🎯 Loss params: {loss_str}")
         
         if model_type == 'gat' and 'heads' in opt_params:
             print(f"🎯 GAT heads: {opt_params['heads']}")
