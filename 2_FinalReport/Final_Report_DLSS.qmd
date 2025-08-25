@@ -288,7 +288,7 @@ knitr::kable(data_homophily, caption = "Network Assortativity",
     \label{fig:pca_combined}
 \end{figure}
 
-Spectral embedding chosen by eigenvalue gap. 
+Spectral embedding chosen by largest eigenvalue gap. 
 
 \begin{figure}[H]
     \centering
@@ -331,20 +331,23 @@ For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of 
 \begin{figure}[H]
     \begin{subfigure}{0.3\textwidth} 
         \centering
-        \includegraphics[width=\textwidth]{Images/enhanced_improved_gnn_data_quantile_Target_QC_aggcat.png} %Path to images 
+        \includegraphics[width=\textwidth]{Images/enhanced_improved_gnn_data_quantile_Target_QC_aggcat_run1.png} %Path to images 
         \label{fig:Multilayer Perceptron}
+        \caption{GCN} %Visible Caption
     \end{subfigure}
     \hfill 
     \begin{subfigure}{0.3\textwidth} 
         \centering
-        \includegraphics[width=\textwidth]{Images/enhanced_residual_gcn_data_quantile_Target_QC_aggcat.png}
+        \includegraphics[width=\textwidth]{Images/enhanced_residual_gcn_data_quantile_Target_QC_aggcat_run1.png}
         \label{fig:Concolutional Graph Neural Network}
+        \caption{Residual GCN} %Visible Caption
     \end{subfigure}
     \hfill 
     \begin{subfigure}{0.3\textwidth} 
         \centering
-        \includegraphics[width=\textwidth]{Images/enhanced_residual_sage_data_quantile_Target_QC_aggcat.png}
+        \includegraphics[width=\textwidth]{Images/enhanced_residual_sage_data_quantile_Target_QC_aggcat_run1.png}
         \label{fig:GraphSAGE Model} %Invisible! 
+        \caption{Residual Sage} %Visible Caption
     \end{subfigure}
     \caption{Test and Validation Loss and Accuracy during Training I} %Visible Caption 
     \label{fig:}
@@ -353,20 +356,23 @@ For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of 
 \begin{figure}[H]
     \begin{subfigure}{0.3\textwidth} 
         \centering
-        \includegraphics[width=\textwidth]{Images/enhanced_gat_data_quantile_Target_QC_aggcat.png} %Path to images 
+        \includegraphics[width=\textwidth]{Images/enhanced_gat_data_quantile_Target_QC_aggcat_run1.png} %Path to images 
         \label{fig:Multilayer Perceptron}
+        \caption{GAT} %Visible Caption
     \end{subfigure}
     \hfill 
     \begin{subfigure}{0.3\textwidth} 
         \centering
-        \includegraphics[width=\textwidth]{Images/enhanced_mlp_data_quantile_Target_QC_aggcat.png}
+        \includegraphics[width=\textwidth]{Images/enhanced_mlp_data_quantile_Target_QC_aggcat_run1.png}
         \label{fig:Concolutional Graph Neural Network}
+        \caption{MLP Network- and Article-Features} %Visible Caption
     \end{subfigure}
     \hfill 
     \begin{subfigure}{0.3\textwidth} 
         \centering
-        \includegraphics[width=\textwidth]{Images/enhanced_mlp_data_quantile_Target_QC_aggcat.png}
+        \includegraphics[width=\textwidth]{Images/enhanced_mlp_data_nonnetwork_quantile_Target_QC_aggcat_run1.png}
         \label{fig:GraphSAGE Model} %Invisible! 
+        \caption{MLP Article-Features} %Visible Caption
     \end{subfigure}
     \caption{Test and Validation Loss and Accuracy during Training II} %Visible Caption 
     \label{fig:}
@@ -378,14 +384,14 @@ For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/Result_GNN_Metrics.png}
+    \includegraphics[width=\textwidth, height=8cm, keepaspectratio]{Images/CV_Results_with_ErrorBars.png}
     \caption{Evaluation Metrics for NN-Models}
     \label{fig:pca_combined}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/Confusion_GNN_ShareOfClass.png}
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/Averaged_Confusion_Matrices.png}
     \caption{Confusion Matrices for NN-Models}
     \label{fig:pca_combined}
 \end{figure}
