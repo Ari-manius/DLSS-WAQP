@@ -157,6 +157,8 @@ L_norm = sp.sparse.eye(adj_symmetric.shape[0]) - D_inv_sqrt @ adj_symmetric @ D_
 
 print("    Computing smallest eigenvalues...")
 eigenvals, eigenvecs = eigsh(L_norm, k=9, which='SM', maxiter=500)
+print(eigenvals)
+
 embedding_full = eigenvecs[:, 1:]  
 
 df_wikinetmetrics = df_wikinetmetrics.with_columns([

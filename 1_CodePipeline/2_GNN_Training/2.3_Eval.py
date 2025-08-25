@@ -7,6 +7,8 @@ os.chdir(new_path)
 
 # %% 
 import torch 
+import matplotlib.pyplot as plt
+import numpy as np
 from utils.create_split_masks import create_split_masks
 from utils.evaluate_gnn_model import evaluate_gnn_model
 from utils.evaluate_gnn_model_lazy import evaluate_gnn_model_lazy
@@ -26,6 +28,10 @@ def model_data_judged_auto(data, check, use_lazy_loading=False, batch_size=1000)
         'mlp': MLPBaseline,
     }
     
+    # Load checkpoint to inspect actual model structure
+    checkpoint_path = f'check/{check}.pt'.replace('.pt', '_with_config.pt') if not f'check/{check}.pt'.endswith('_with_config.pt') else f'check/{check}.pt'
+    checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
+    
     # Create model with config parameters
     model_class = model_classes[config['model_type']]
     model_kwargs = {
@@ -36,14 +42,21 @@ def model_data_judged_auto(data, check, use_lazy_loading=False, batch_size=1000)
         'dropout': config['dropout']
     }
     
+    # For GAT, infer heads from saved model structure
     if config['model_type'] == 'gat':
-        model_kwargs['heads'] = config.get('heads', 4)
+        # Inspect the saved state dict to determine the number of heads
+        state_dict = checkpoint['model_state_dict']
+        if 'convs.0.att_src' in state_dict:
+            # att_src shape is [1, heads, hidden_dim]
+            saved_heads = state_dict['convs.0.att_src'].shape[1]
+            model_kwargs['heads'] = saved_heads
+            print(f"Detected GAT heads from checkpoint: {saved_heads}")
+        else:
+            model_kwargs['heads'] = config.get('heads', 4)
         
     model = model_class(**model_kwargs)
     
-    # Load state dict on CPU first
-    checkpoint_path = f'check/{check}.pt'.replace('.pt', '_with_config.pt') if not f'check/{check}.pt'.endswith('_with_config.pt') else f'check/{check}.pt'
-    checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
+    # Load state dict
     model.load_state_dict(checkpoint['model_state_dict'])
     
     # Move to MPS if available
@@ -69,103 +82,221 @@ def model_data_judged_auto(data, check, use_lazy_loading=False, batch_size=1000)
     return result, config
 
 
-#%%
-result_mlp1, config_mlp1 = model_data_judged_auto("data_quantile_Target_QC_aggcat", "enhanced_mlp_data_quantile_Target_QC_aggcat", use_lazy_loading=True, batch_size=8192)
-print(f"Model used: {config_mlp1['model_type']} with hidden_dim={config_mlp1['hidden_dim']}")
+# REMOVED: Single run evaluations - using cross-validation approach instead
+# This eliminates redundant model loading and focuses on robust CV evaluation
 
 #%%
-result_mlp2, config_mlp2 = model_data_judged_auto("data_nonnetwork_quantile_Target_QC_aggcat", "enhanced_mlp_data_nonnetwork_quantile_Target_QC_aggcat", use_lazy_loading=True, batch_size=8192)
-print(f"Model used: {config_mlp2['model_type']} with hidden_dim={config_mlp2['hidden_dim']}")
-
-#%%
-result_residualGCN, config_residualGCN = model_data_judged_auto("data_quantile_Target_QC_aggcat", "enhanced_residual_gcn_data_quantile_Target_QC_aggcat", use_lazy_loading=True, batch_size=8192)
-print(f"Model used: {config_residualGCN['model_type']} with hidden_dim={config_residualGCN['hidden_dim']}")
-
-#%%
-result_improvedGCN, config_improvedGCN = model_data_judged_auto("data_quantile_Target_QC_aggcat", "enhanced_improved_gnn_data_quantile_Target_QC_aggcat", use_lazy_loading=True, batch_size=8192)
-print(f"Model used: {config_improvedGCN['model_type']} with hidden_dim={config_improvedGCN['hidden_dim']}")
-
-#%%
-result_residualSAGE, config_residualSAGE = model_data_judged_auto("data_quantile_Target_QC_aggcat", "enhanced_residual_sage_data_quantile_Target_QC_aggcat", use_lazy_loading=True, batch_size=8192)
-print(f"Model used: {config_residualSAGE['model_type']} with hidden_dim={config_residualSAGE['hidden_dim']}")
-
-#%%
-result_GAT, config_GAT = model_data_judged_auto("data_quantile_Target_QC_aggcat", "enhanced_gat_data_quantile_Target_QC_aggcat", use_lazy_loading=True, batch_size=8192)
-print(f"Model used: {config_GAT['model_type']} with hidden_dim={config_GAT['hidden_dim']}")
-
-#%%
-results_dict = {
-    "GCN" : result_improvedGCN,
-    "Residual GCN" : result_residualGCN,
-    "GAT" : result_GAT,
-    "Residual Sage" : result_residualSAGE,
-    "MLP Full-Features" : result_mlp1,
-    "MLP Article-Features" : result_mlp2,
-}
-
-#%%
-import matplotlib.pyplot as plt
-import numpy as np
-
-def plot_macro_metrics_comparison(results_dict):
+def evaluate_cross_validation(model_base_names, data_name, runs=[1, 2, 3], use_lazy_loading=True, batch_size=8192):
     """
-    Create subplots for each macro metric and accuracy comparing all models
-    """
-    # Extract macro metrics for all models
-    models = list(results_dict.keys())
-    metrics = ['precision', 'recall', 'f1-score', 'accuracy']
+    Evaluate multiple runs of models and calculate cross-validation statistics
     
-    # Create figure with subplots
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    Args:
+        model_base_names: List of base model names (without _run suffix)
+        data_name: Name of the dataset
+        runs: List of run numbers to evaluate
+        use_lazy_loading: Whether to use lazy loading
+        batch_size: Batch size for evaluation
+    
+    Returns:
+        Dictionary with CV statistics for each model
+    """
+    cv_results = {}
+    
+    for model_base in model_base_names:
+        print(f"\nEvaluating {model_base}...")
+        run_results = []
+        
+        for run in runs:
+            model_name = f"{model_base}_run{run}"
+            try:
+                result, config = model_data_judged_auto(data_name, model_name, use_lazy_loading, batch_size)
+                run_results.append(result)
+                print(f"  Run {run}: Accuracy = {result[0]['accuracy']:.4f}")
+            except Exception as e:
+                print(f"  Run {run}: Failed - {e}")
+                continue
+        
+        if len(run_results) > 0:
+            # Calculate statistics across runs
+            accuracies = [r[0]['accuracy'] for r in run_results]
+            precisions = [r[0]['macro avg']['precision'] for r in run_results]
+            recalls = [r[0]['macro avg']['recall'] for r in run_results]
+            f1_scores = [r[0]['macro avg']['f1-score'] for r in run_results]
+            
+            cv_results[model_base] = {
+                'n_runs': len(run_results),
+                'accuracy': {
+                    'mean': np.mean(accuracies),
+                    'std': np.std(accuracies),
+                    'values': accuracies
+                },
+                'precision': {
+                    'mean': np.mean(precisions),
+                    'std': np.std(precisions),
+                    'values': precisions
+                },
+                'recall': {
+                    'mean': np.mean(recalls),
+                    'std': np.std(recalls),
+                    'values': recalls
+                },
+                'f1_score': {
+                    'mean': np.mean(f1_scores),
+                    'std': np.std(f1_scores),
+                    'values': f1_scores
+                }
+            }
+    
+    return cv_results
+
+#%%
+# Define model base names (without _run suffix)
+model_bases = [
+    'enhanced_improved_gnn_data_quantile_Target_QC_aggcat',
+    'enhanced_residual_gcn_data_quantile_Target_QC_aggcat', 
+    'enhanced_gat_data_quantile_Target_QC_aggcat',
+    'enhanced_residual_sage_data_quantile_Target_QC_aggcat',
+    'enhanced_mlp_data_quantile_Target_QC_aggcat',
+    'enhanced_mlp_data_nonnetwork_quantile_Target_QC_aggcat'
+]
+
+# Define model base names with their corresponding datasets
+model_dataset_pairs = [
+    ('enhanced_improved_gnn_data_quantile_Target_QC_aggcat', 'data_quantile_Target_QC_aggcat'),
+    ('enhanced_residual_gcn_data_quantile_Target_QC_aggcat', 'data_quantile_Target_QC_aggcat'), 
+    ('enhanced_gat_data_quantile_Target_QC_aggcat', 'data_quantile_Target_QC_aggcat'),
+    ('enhanced_residual_sage_data_quantile_Target_QC_aggcat', 'data_quantile_Target_QC_aggcat'),
+    ('enhanced_mlp_data_quantile_Target_QC_aggcat', 'data_quantile_Target_QC_aggcat'),
+    ('enhanced_mlp_data_nonnetwork_quantile_Target_QC_aggcat', 'data_nonnetwork_quantile_Target_QC_aggcat')
+]
+
+# Efficient evaluation collecting both metrics and confusion matrices in one pass
+cv_results = {}
+confusion_matrices_by_model = {}
+model_names = ['GCN', 'Residual GCN', 'GAT', 'Residual SAGE', 'MLP Full-Features', 'MLP Article-Features']
+
+for i, (model_base, data_name) in enumerate(model_dataset_pairs):
+    print(f"\nEvaluating {model_base} with {data_name}...")
+    run_results = []
+    confusion_matrices = []
+    
+    for run in [1, 2, 3]:
+        model_name = f"{model_base}_run{run}"
+        try:
+            result, config = model_data_judged_auto(data_name, model_name, use_lazy_loading=True, batch_size=8192)
+            run_results.append(result)
+            confusion_matrices.append(result[1])  # Store confusion matrix
+            print(f"  Run {run}: Accuracy = {result[0]['accuracy']:.4f}")
+        except Exception as e:
+            print(f"  Run {run}: Failed - {e}")
+            continue
+    
+    if len(run_results) > 0:
+        # Calculate statistics across runs
+        accuracies = [r[0]['accuracy'] for r in run_results]
+        precisions = [r[0]['macro avg']['precision'] for r in run_results]
+        recalls = [r[0]['macro avg']['recall'] for r in run_results]
+        f1_scores = [r[0]['macro avg']['f1-score'] for r in run_results]
+        
+        cv_results[model_base] = {
+            'n_runs': len(run_results),
+            'accuracy': {
+                'mean': np.mean(accuracies),
+                'std': np.std(accuracies),
+                'values': accuracies
+            },
+            'precision': {
+                'mean': np.mean(precisions),
+                'std': np.std(precisions),
+                'values': precisions
+            },
+            'recall': {
+                'mean': np.mean(recalls),
+                'std': np.std(recalls),
+                'values': recalls
+            },
+            'f1_score': {
+                'mean': np.mean(f1_scores),
+                'std': np.std(f1_scores),
+                'values': f1_scores
+            }
+        }
+        
+        # Store confusion matrices for averaging
+        confusion_matrices_by_model[model_names[i]] = confusion_matrices
+
+#%%
+def plot_cv_results_with_error_bars(cv_results):
+    """
+    Plot cross-validation results with error bars showing standard deviation
+    """
+    models = list(cv_results.keys())
+    model_names = ['GCN', 'Residual GCN', 'GAT', 'Residual SAGE', 'MLP Full-Features', 'MLP Article-Features']
+    metrics = ['accuracy', 'precision', 'recall', 'f1_score']
+    metric_labels = ['Accuracy', 'Macro Precision', 'Macro Recall', 'Macro F1-Score']
+    
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     axes = axes.flatten()
     
-    for i, metric in enumerate(metrics):
-        # Extract metric values for all models
-        values = []
-        for model in models:
-            if metric == 'accuracy':
-                values.append(results_dict[model][0]['accuracy'])
-            else:
-                macro_avg = results_dict[model][0]['macro avg']
-                values.append(macro_avg[metric])
+    for i, (metric, label) in enumerate(zip(metrics, metric_labels)):
+        means = [cv_results[model][metric]['mean'] for model in models]
+        stds = [cv_results[model][metric]['std'] for model in models]
         
-        # Create bar plot
-        bars = axes[i].bar(models, values, alpha=0.8)
+        bars = axes[i].bar(model_names, means, yerr=stds, capsize=5, alpha=0.8, 
+                          error_kw={'elinewidth': 2, 'capthick': 2})
         
-        if metric == 'accuracy':
-            axes[i].set_title(f'{metric.title()}')
-        else:
-            axes[i].set_title(f'Macro Average {metric.title()}')
-            
-        axes[i].set_ylabel(metric.title())
+        axes[i].set_title(f'{label} (Mean ± Std)')
+        axes[i].set_ylabel(label)
         axes[i].set_ylim(0, 1)
         
         # Add value labels on bars
-        for bar, value in zip(bars, values):
-            axes[i].text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.01,
-                        f'{value:.3f}', ha='center', va='bottom')
+        for bar, mean, std in zip(bars, means, stds):
+            axes[i].text(bar.get_x() + bar.get_width()/2., bar.get_height() + std + 0.01,
+                        f'{mean:.3f}±{std:.3f}', ha='center', va='bottom', fontsize=9)
         
-        # Rotate x-axis labels for better readability
         axes[i].tick_params(axis='x', rotation=45)
     
     plt.tight_layout()
-    plt.savefig("/Users/ramius/Desktop/CodeVault/01_Project/Uni/DLSS_DeepLearningforSocialScientists/Final_Project/DLSS-WAQP/2_FinalReport/Images/Result_GNN_Metrics.png", dpi=300, bbox_inches='tight')
+    plt.savefig("/Users/ramius/Desktop/CodeVault/01_Project/Uni/DLSS_DeepLearningforSocialScientists/Final_Project/DLSS-WAQP/2_FinalReport/Images/CV_Results_with_ErrorBars.png", 
+                dpi=300, bbox_inches='tight')
     #plt.show()
 
-# Create the comparison plot
-plot_macro_metrics_comparison(results_dict)
+# Plot CV results
+plot_cv_results_with_error_bars(cv_results)
 
 #%%
-import seaborn as sns
-
-def plot_confusion_matrices_comparison(results_dict):
+def print_cv_summary(cv_results):
     """
-    Create subplots for confusion matrices of all models showing share of total
+    Print a summary table of cross-validation results
     """
-    models = list(results_dict.keys())
-    n_models = len(models)
+    print("\n" + "="*80)
+    print("CROSS-VALIDATION SUMMARY")
+    print("="*80)
     
-    # Calculate subplot grid dimensions
+    model_names = ['GCN', 'Residual GCN', 'GAT', 'Residual SAGE', 'MLP Full-Features', 'MLP Article-Features']
+    
+    for i, (model, name) in enumerate(zip(cv_results.keys(), model_names)):
+        data = cv_results[model]
+        print(f"\n{name} (n={data['n_runs']} runs):")
+        print(f"  Accuracy:  {data['accuracy']['mean']:.4f} ± {data['accuracy']['std']:.4f}")
+        print(f"  Precision: {data['precision']['mean']:.4f} ± {data['precision']['std']:.4f}")  
+        print(f"  Recall:    {data['recall']['mean']:.4f} ± {data['recall']['std']:.4f}")
+        print(f"  F1-Score:  {data['f1_score']['mean']:.4f} ± {data['f1_score']['std']:.4f}")
+
+print_cv_summary(cv_results)
+
+#%%
+# OLD INEFFICIENT FUNCTION REMOVED - using cached data instead
+
+# Generate averaged confusion matrices using cached data (no re-evaluation!)
+def plot_averaged_confusion_matrices_efficient(confusion_matrices_by_model):
+    """
+    Create confusion matrices averaged across multiple runs using cached results
+    """
+    import seaborn as sns
+    
+    # Plot averaged confusion matrices
+    n_models = len(confusion_matrices_by_model)
     cols = 3 if n_models > 4 else 2
     rows = (n_models + cols - 1) // cols
     
@@ -179,27 +310,69 @@ def plot_confusion_matrices_comparison(results_dict):
     else:
         axes = axes.flatten()
     
-    for i, model in enumerate(models):
-        # Extract confusion matrix (second element in the tuple)
-        cm = results_dict[model][1]
-        
-        # Convert to share of class total (row-wise normalization)
-        cm_normalized = cm.astype('float') / cm.sum(axis=1, keepdims=True)
-        
-        # Create heatmap with percentage values and uniform color scale
-        sns.heatmap(cm_normalized, annot=True, fmt='.3f', cmap='Blues', 
-                   ax=axes[i], cbar=True, vmin=0, vmax=1)
-        axes[i].set_title(f'{model} Confusion Matrix (Share of Class)')
-        axes[i].set_xlabel('Predicted')
-        axes[i].set_ylabel('Actual')
+    averaged_cms = {}
+    for i, (model_name, confusion_matrices) in enumerate(confusion_matrices_by_model.items()):
+        if len(confusion_matrices) > 0:
+            # Average confusion matrices across runs
+            averaged_cm = np.mean(confusion_matrices, axis=0)
+            averaged_cms[model_name] = averaged_cm
+            
+            # Convert to share of class total (row-wise normalization)
+            cm_normalized = averaged_cm.astype('float') / averaged_cm.sum(axis=1, keepdims=True)
+            
+            # Create heatmap
+            sns.heatmap(cm_normalized, annot=True, fmt='.3f', cmap='Blues', 
+                       ax=axes[i], cbar=True, vmin=0, vmax=1)
+            axes[i].set_title(f'{model_name}\nConfusion Matrix (Avg across {len(confusion_matrices)} runs)')
+            axes[i].set_xlabel('Predicted')
+            axes[i].set_ylabel('Actual')
     
     # Hide unused subplots
-    for j in range(n_models, len(axes)):
+    for j in range(len(confusion_matrices_by_model), len(axes)):
         axes[j].set_visible(False)
     
     plt.tight_layout()
-    plt.savefig("/Users/ramius/Desktop/CodeVault/01_Project/Uni/DLSS_DeepLearningforSocialScientists/Final_Project/DLSS-WAQP/2_FinalReport/Images/Confusion_GNN_ShareOfClass.png", dpi=300, bbox_inches='tight')
+    plt.savefig("/Users/ramius/Desktop/CodeVault/01_Project/Uni/DLSS_DeepLearningforSocialScientists/Final_Project/DLSS-WAQP/2_FinalReport/Images/Averaged_Confusion_Matrices.png", 
+                dpi=300, bbox_inches='tight')
     #plt.show()
+    
+    return averaged_cms
 
-# Create confusion matrix comparison plot
-plot_confusion_matrices_comparison(results_dict)
+# Generate averaged confusion matrices efficiently (no model re-loading!)
+averaged_confusion_matrices = plot_averaged_confusion_matrices_efficient(confusion_matrices_by_model)
+
+#%%
+# Save CV results as JSON
+import json
+
+# Convert numpy arrays to lists for JSON compatibility
+cv_results_json = {}
+for model, data in cv_results.items():
+    cv_results_json[model] = {
+        'n_runs': data['n_runs'],
+        'accuracy': {
+            'mean': float(data['accuracy']['mean']),
+            'std': float(data['accuracy']['std']),
+            'values': [float(x) for x in data['accuracy']['values']]
+        },
+        'precision': {
+            'mean': float(data['precision']['mean']),
+            'std': float(data['precision']['std']),
+            'values': [float(x) for x in data['precision']['values']]
+        },
+        'recall': {
+            'mean': float(data['recall']['mean']),
+            'std': float(data['recall']['std']),
+            'values': [float(x) for x in data['recall']['values']]
+        },
+        'f1_score': {
+            'mean': float(data['f1_score']['mean']),
+            'std': float(data['f1_score']['std']),
+            'values': [float(x) for x in data['f1_score']['values']]
+        }
+    }
+
+with open('cv_results.json', 'w') as f:
+    json.dump(cv_results_json, f, indent=2)
+
+print("CV results saved to cv_results.json")

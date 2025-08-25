@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from datetime import datetime
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -497,6 +498,7 @@ def main():
     parser.add_argument('--min_class_boost', type=float, default=3.0, help='Minimum class boost factor')
     parser.add_argument('--oversample_strategy', type=str, default='boosted', choices=['balanced', 'boosted'], help='Oversampling strategy')
     parser.add_argument('--min_samples_factor', type=int, default=2, help='Minimum samples factor for oversampling')
+    parser.add_argument('--run_id', type=str, default=None, help='Unique identifier for this training run')
     
     args = parser.parse_args()
     
@@ -653,8 +655,12 @@ def main():
         # Use ReduceLROnPlateau for short training runs
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5)
     
-    # Checkpoint path
-    checkpoint_path = f"check/enhanced_{args.model_type}_{args.data_file}.pt"
+    # Generate unique identifier for this run
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_suffix = f"_{args.run_id}" if args.run_id else f"_{timestamp}"
+    
+    # Checkpoint path with unique identifier
+    checkpoint_path = f"check/enhanced_{args.model_type}_{args.data_file}{run_suffix}.pt"
     os.makedirs("check", exist_ok=True)
     
     # Train model
@@ -735,8 +741,8 @@ def main():
         
         plt.tight_layout()
         
-        # Save plot
-        plot_path = f"lossVisual/enhanced_{args.model_type}_{args.data_file}.png"
+        # Save plot with unique identifier
+        plot_path = f"lossVisual/enhanced_{args.model_type}_{args.data_file}{run_suffix}.png"
         os.makedirs("lossVisual", exist_ok=True)
         plt.savefig(plot_path)
         print(f"Training curves saved to: {plot_path}")

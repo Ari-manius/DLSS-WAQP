@@ -57,7 +57,20 @@ def load_trained_model(checkpoint_path, device='auto'):
         
         # Add model-specific parameters
         if config['model_type'] == 'gat':
-            model_kwargs['heads'] = config.get('heads', 4)  # Default GAT heads
+            # Try to get heads from config, or infer from saved model structure
+            if 'heads' in config:
+                model_kwargs['heads'] = config['heads']
+            else:
+                # Infer heads from saved state dict
+                state_dict = checkpoint['model_state_dict']
+                if 'convs.0.att_src' in state_dict:
+                    # att_src shape is [1, heads, hidden_dim]
+                    saved_heads = state_dict['convs.0.att_src'].shape[1]
+                    model_kwargs['heads'] = saved_heads
+                    print(f"⚠️  GAT heads not in config, inferred from checkpoint: {saved_heads}")
+                else:
+                    model_kwargs['heads'] = 4  # Final fallback
+                    print(f"⚠️  Could not infer GAT heads, using default: 4")
             
         model = model_class(**model_kwargs)
         

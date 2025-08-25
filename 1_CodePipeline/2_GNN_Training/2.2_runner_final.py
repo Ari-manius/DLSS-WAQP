@@ -72,20 +72,21 @@ def get_fallback_params(model_type):
     }
     return fallback_params.get(model_type, {})
 
-def build_training_command(model_type, data_file, epochs=100):
+def build_training_command(model_type, data_file, epochs=100, run_id=1):
     """Build training command with optimized parameters."""
     # Get optimization results or fallback to defaults
     opt_params = get_latest_optimization_results(model_type, data_file)
     
     if opt_params:
-        print(f"✓ Using optimized parameters for {model_type}")
+        print(f"✓ Using optimized parameters for {model_type} (run {run_id})")
         params = opt_params
     else:
-        print(f"⚠ Using fallback parameters for {model_type}")
+        print(f"⚠ Using fallback parameters for {model_type} (run {run_id})")
         params = get_fallback_params(model_type)
     
-    # Base command
-    cmd = f"python3 Enhanced_Training.py --data_file {data_file} --model_type {model_type}"
+    # Base command - use 'mlp' for mlp_non_network since that's what the script accepts
+    actual_model_type = 'mlp' if model_type == 'mlp_non_network' else model_type
+    cmd = f"python3 Enhanced_Training.py --data_file {data_file} --model_type {actual_model_type}"
     
     # Add optimized parameters
     if 'hidden_dim' in params:
@@ -117,14 +118,14 @@ def build_training_command(model_type, data_file, epochs=100):
     if model_type == 'gat' and 'heads' in params:
         cmd += f" --heads {params['heads']}"
     
-    # GraphSAINT for memory efficiency (except MLP variants)
-    if model_type not in ['mlp', 'mlp_non_network']:
-        if model_type == 'gat':
-            cmd += " --use_graphsaint --batch_size 2048 --walk_length 2 --num_steps 8"
-        else:
-            cmd += " --use_graphsaint --batch_size 4096 --walk_length 2 --num_steps 8"
+    # # GraphSAINT for memory efficiency (except MLP variants)
+    # if model_type not in ['mlp', 'mlp_non_network']:
+    if model_type == 'gat':
+        cmd += " --use_graphsaint --batch_size 2048 --walk_length 2 --num_steps 8"
+    else:
+        cmd += " --use_graphsaint --batch_size 8192 --walk_length 2 --num_steps 8"
     
-    cmd += f" --epochs {epochs} --device auto"
+    cmd += f" --epochs {epochs} --device auto --run_id run{run_id}"
     
     return cmd
 
@@ -154,8 +155,8 @@ def main():
     # Configuration
     data_file = "data_quantile_Target_QC_aggcat"
     non_network_data_file = "data_nonnetwork_quantile_Target_QC_aggcat"
-    model_types = ['improved_gnn', 'residual_gcn', 'residual_sage', 'gat', 'mlp', 'mlp_non_network']
-    epochs = 100
+    model_types = ['mlp_non_network', 'improved_gnn', 'residual_gcn', 'residual_sage', 'gat', 'mlp']
+    epochs = 150
     
     # Show available optimization results
     results_dir = "optimization_results"
@@ -173,73 +174,82 @@ def main():
     else:
         print("⚠ No optimization results directory found, using fallback parameters")
     
-    print(f"📋 Training {len(model_types)} models with {epochs} epochs each")
+    print(f"📋 Training {len(model_types)} models with {epochs} epochs each (3 runs per model)")
+    print(f"📋 Total training runs: {len(model_types) * 3}")
     print("=" * 60)
     
-    # Build and execute training commands
+    # Build and execute training commands (3 runs per model)
     successful_runs = 0
     failed_models = []
+    total_runs = len(model_types) * 3
+    run_counter = 0
     
-    for i, model_type in enumerate(model_types, 1):
-        print(f"\nStep {i}: Training {model_type} ({i}/{len(model_types)})")
-        print("-" * 40)
-        
-        # Use non-network dataset for mlp_non_network model
-        current_data_file = non_network_data_file if model_type == 'mlp_non_network' else data_file
-        
-        # Build command with optimized parameters
-        command = build_training_command(model_type, current_data_file, epochs)
-        
-        # Show key parameters being used
-        opt_params = get_latest_optimization_results(model_type, current_data_file)
-        if not opt_params:
-            opt_params = get_fallback_params(model_type)
-        
-        key_params = ['hidden_dim', 'num_layers', 'lr', 'dropout', 'loss_type']
-        param_str = ', '.join([f"{k}={opt_params.get(k, 'N/A')}" for k in key_params if k in opt_params])
-        print(f"📊 Parameters: {param_str}")
-        print(f"📁 Data file: {current_data_file}")
-        
-        # Show loss function parameters if using class_balanced_focal
-        if opt_params.get('loss_type') == 'class_balanced_focal':
-            loss_params = ['cb_focal_beta', 'cb_focal_gamma', 'min_class_boost', 'oversample_strategy', 'min_samples_factor']
-            loss_str = ', '.join([f"{k}={opt_params.get(k, 'N/A')}" for k in loss_params if k in opt_params])
-            print(f"🎯 Loss params: {loss_str}")
-        
-        if model_type == 'gat' and 'heads' in opt_params:
-            print(f"🎯 GAT heads: {opt_params['heads']}")
-        
-        # Execute training
-        if run_command(command):
-            successful_runs += 1
-            print(f"✓ {model_type} training completed successfully")
-        else:
-            failed_models.append(model_type)
-            print(f"✗ {model_type} training failed")
+    for model_type in model_types:
+        for run_id in range(1, 4):  # Train 3 models for each type
+            run_counter += 1
+            print(f"\nStep {run_counter}: Training {model_type} - Run {run_id} ({run_counter}/{total_runs})")
+            print("-" * 50)
+            
+            # Use non-network dataset for mlp_non_network model
+            current_data_file = non_network_data_file if model_type == 'mlp_non_network' else data_file
+            
+            # Build command with optimized parameters
+            command = build_training_command(model_type, current_data_file, epochs, run_id)
+            
+            # Show key parameters being used
+            opt_params = get_latest_optimization_results(model_type, current_data_file)
+            if not opt_params:
+                opt_params = get_fallback_params(model_type)
+            
+            key_params = ['hidden_dim', 'num_layers', 'lr', 'dropout', 'loss_type']
+            param_str = ', '.join([f"{k}={opt_params.get(k, 'N/A')}" for k in key_params if k in opt_params])
+            print(f"📊 Parameters: {param_str}")
+            print(f"📁 Data file: {current_data_file}")
+            
+            # Show loss function parameters if using class_balanced_focal
+            if opt_params.get('loss_type') == 'class_balanced_focal':
+                loss_params = ['cb_focal_beta', 'cb_focal_gamma', 'min_class_boost', 'oversample_strategy', 'min_samples_factor']
+                loss_str = ', '.join([f"{k}={opt_params.get(k, 'N/A')}" for k in loss_params if k in opt_params])
+                print(f"🎯 Loss params: {loss_str}")
+            
+            if model_type == 'gat' and 'heads' in opt_params:
+                print(f"🎯 GAT heads: {opt_params['heads']}")
+            
+            # Execute training
+            if run_command(command):
+                successful_runs += 1
+                print(f"✓ {model_type} run {run_id} training completed successfully")
+            else:
+                failed_models.append(f"{model_type}_run{run_id}")
+                print(f"✗ {model_type} run {run_id} training failed")
     
     # Final Summary
     print("\n" + "="*60)
     print("TRAINING PIPELINE SUMMARY")
     print("="*60)
     print(f"Data file: {data_file}")
-    print(f"Models trained: {len(model_types)}")
-    print(f"Successful runs: {successful_runs}/{len(model_types)}")
+    print(f"Model types: {len(model_types)}")
+    print(f"Total training runs: {total_runs}")
+    print(f"Successful runs: {successful_runs}/{total_runs}")
     
-    if successful_runs == len(model_types):
-        print("🎉 All models trained successfully!")
+    if successful_runs == total_runs:
+        print("🎉 All model runs trained successfully!")
+        print(f"✓ {len(model_types)} model types × 3 runs each = {total_runs} total models")
         print("\nKey Features Used:")
+        print("  • Multiple runs per model type for robustness")
+        print("  • Unique run identifiers for each model")
         print("  • Optimized hyperparameters (when available)")
         print("  • Class-balanced loss functions")
         print("  • GraphSAINT sampling for memory efficiency")
         print("  • Enhanced gradient handling")
     else:
-        print(f"⚠ {len(model_types) - successful_runs} models failed to train")
+        print(f"⚠ {total_runs - successful_runs} model runs failed to train")
         if failed_models:
-            print(f"Failed models: {', '.join(failed_models)}")
+            print(f"Failed runs: {', '.join(failed_models)}")
     
     # Show where results are saved
-    print(f"\nModel checkpoints saved in: check/")
-    print(f"Loss visualizations saved in: lossVisual/")
+    print("Model checkpoints saved in: check/")
+    print("Loss visualizations saved in: lossVisual/")
     print("="*60)
 
 if __name__ == "__main__":

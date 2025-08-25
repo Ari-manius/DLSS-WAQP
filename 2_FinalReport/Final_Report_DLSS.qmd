@@ -269,32 +269,33 @@ knitr::kable(data_homophily, caption = "Network Assortativity",
               format.args = list(scientific = FALSE))
 ```
 
--   Transition Probabilties for all classes on graph
-
 ### Graph based Features
 
--   For one we used the conenctions in the network as part of the data that all the neural networks except for the MLP-Baseline were trained
+-   pagerank
+-   katz (paused beacause of redundancy)
+-   betweenness
+-   hub/authority
+-   degree in
+-   degree out
+-   core number
+-   clustering (local)
+- reciprocity share
 
--   Centralities
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/netfeatures_category.png}
+    \caption{CCDF for Network Features of Wikipedia Graph}
+    \label{fig:pca_combined}
+\end{figure}
 
-    -   pagerank
-    -   katz (paused beacause of redundancy)
-    -   betweenness
-    -   hub/authority
-    -   degree in
-    -   degree out
-    -   core number
-    -   clustering (local)
+Spectral embedding chosen by eigenvalue gap. 
 
--   CCDFs of network metrics across article categories
-
--   Spectral Embedding
-
--   Transition Matrix
-
--   Modularity Matrix
-
--   Share Reciprocity
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/2dspectral.png}
+    \caption{2D Spectral Node Embedding produce by Wikipedia Graph Sample}
+    \label{fig:pca_combined}
+\end{figure}
 
 ## Preprocessing
 
@@ -304,11 +305,22 @@ Regarding our target variable we tried switching from a classification to a regr
 
 The features had to be preprocessed since the numerical ranges were not uniform and fit for training. Here normalization could have solved the problem. However the distributions particularly for the network metrics are immensely positvely skewed. Different kinds such as standard, minmax, robust and robust-log scaling proved to be ineffective to generate reasonably spread distributions. The only approach that brought reasonable results was quantile scaling. Quantile scaling transforms data by mapping each value to its percentile rank, creating a uniform distribution where extreme outliers get compressed while preserving relative order.
 
-For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of the network. \# Methods
+For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of the network. 
+
+# Methods
+
+## Benchmarks 
+
+### Machine-Learning
+
+### Multi-Layer-Perceptron
 
 ## Graph-Neural-Network Models
 
 ### Graph-Convolutional
+
+- Improved GNN
+- Residual GCN
 
 ### Graph-Sage
 
@@ -316,9 +328,67 @@ For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of 
 
 ## Training and Evaluation
 
+\begin{figure}[H]
+    \begin{subfigure}{0.3\textwidth} 
+        \centering
+        \includegraphics[width=\textwidth]{Images/enhanced_improved_gnn_data_quantile_Target_QC_aggcat.png} %Path to images 
+        \label{fig:Multilayer Perceptron}
+    \end{subfigure}
+    \hfill 
+    \begin{subfigure}{0.3\textwidth} 
+        \centering
+        \includegraphics[width=\textwidth]{Images/enhanced_residual_gcn_data_quantile_Target_QC_aggcat.png}
+        \label{fig:Concolutional Graph Neural Network}
+    \end{subfigure}
+    \hfill 
+    \begin{subfigure}{0.3\textwidth} 
+        \centering
+        \includegraphics[width=\textwidth]{Images/enhanced_residual_sage_data_quantile_Target_QC_aggcat.png}
+        \label{fig:GraphSAGE Model} %Invisible! 
+    \end{subfigure}
+    \caption{Test and Validation Loss and Accuracy during Training I} %Visible Caption 
+    \label{fig:}
+\end{figure}
+
+\begin{figure}[H]
+    \begin{subfigure}{0.3\textwidth} 
+        \centering
+        \includegraphics[width=\textwidth]{Images/enhanced_gat_data_quantile_Target_QC_aggcat.png} %Path to images 
+        \label{fig:Multilayer Perceptron}
+    \end{subfigure}
+    \hfill 
+    \begin{subfigure}{0.3\textwidth} 
+        \centering
+        \includegraphics[width=\textwidth]{Images/enhanced_mlp_data_quantile_Target_QC_aggcat.png}
+        \label{fig:Concolutional Graph Neural Network}
+    \end{subfigure}
+    \hfill 
+    \begin{subfigure}{0.3\textwidth} 
+        \centering
+        \includegraphics[width=\textwidth]{Images/enhanced_mlp_data_quantile_Target_QC_aggcat.png}
+        \label{fig:GraphSAGE Model} %Invisible! 
+    \end{subfigure}
+    \caption{Test and Validation Loss and Accuracy during Training II} %Visible Caption 
+    \label{fig:}
+\end{figure}
+
 # Results
 
 (Performance comparison tables, learning curves, confusion matrices)
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/Result_GNN_Metrics.png}
+    \caption{Evaluation Metrics for NN-Models}
+    \label{fig:pca_combined}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/Confusion_GNN_ShareOfClass.png}
+    \caption{Confusion Matrices for NN-Models}
+    \label{fig:pca_combined}
+\end{figure}
 
 # Discussion and Conclusion
 
