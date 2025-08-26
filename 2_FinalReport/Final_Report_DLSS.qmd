@@ -439,7 +439,8 @@ The MLP baselines, both with and without network features, provide important per
 
 (Performance Comparison, Interpret the results in the context of social network theory, Key Findings and Implications)
 
--   Sampling method biased
+-   Sampling method biased, alternative whole network approach
+-   imbalanced classes with very small HQ class
 -   more extensive testing of architectures and parameters
 -   missing assortativity/homophily -\> no direct quality propagation (providing network structure did not meaningfully improve GNNs over MLP)
 -   some hints for network structure and position being related article quality (MLP performed better), which by a few percentage points is already remarkable, as these have to be stacked in order to provide meaningful improvements
