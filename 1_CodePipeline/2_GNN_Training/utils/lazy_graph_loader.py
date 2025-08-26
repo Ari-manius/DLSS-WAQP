@@ -9,10 +9,14 @@ class LazyGraphLoader:
     without loading the entire graph into memory at once.
     """
     
-    def __init__(self, data_path, batch_size=1000, device='mps'):
+    def __init__(self, data_path, batch_size=1000, device='mps', run_id=None, use_cv_splits=False, use_kfold=False, n_folds=3):
         self.data_path = data_path
         self.batch_size = batch_size
         self.device = device
+        self.run_id = run_id
+        self.use_cv_splits = use_cv_splits
+        self.use_kfold = use_kfold
+        self.n_folds = n_folds
         self._metadata = None
         self._load_metadata()
     
@@ -25,19 +29,30 @@ class LazyGraphLoader:
         
         # Create split masks if they don't exist
         print("Creating split masks...")
-        from .create_split_masks import create_split_masks
-        if not hasattr(data, 'test_mask') or data.test_mask is None:
-            print("Creating test mask...")
-            _, _, test_mask = create_split_masks(data)
-            data.test_mask = test_mask
-        if not hasattr(data, 'val_mask') or data.val_mask is None:
-            print("Creating val mask...")
-            _, val_mask, _ = create_split_masks(data)
-            data.val_mask = val_mask
-        if not hasattr(data, 'train_mask') or data.train_mask is None:
-            print("Creating train mask...")
-            train_mask, _, _ = create_split_masks(data)
+        if self.use_cv_splits and self.run_id:
+            from .create_split_masks import create_cv_splits_from_run_id
+            train_mask, val_mask, test_mask = create_cv_splits_from_run_id(
+                data, self.run_id, n_folds=self.n_folds, use_kfold=self.use_kfold
+            )
             data.train_mask = train_mask
+            data.val_mask = val_mask
+            data.test_mask = test_mask
+            print(f"🎯 Using CV splits for {self.run_id} (kfold={self.use_kfold})")
+        else:
+            from .create_split_masks import create_split_masks
+            if not hasattr(data, 'test_mask') or data.test_mask is None:
+                print("Creating test mask...")
+                _, _, test_mask = create_split_masks(data)
+                data.test_mask = test_mask
+            if not hasattr(data, 'val_mask') or data.val_mask is None:
+                print("Creating val mask...")
+                _, val_mask, _ = create_split_masks(data)
+                data.val_mask = val_mask
+            if not hasattr(data, 'train_mask') or data.train_mask is None:
+                print("Creating train mask...")
+                train_mask, _, _ = create_split_masks(data)
+                data.train_mask = train_mask
+            print("📊 Using standard splits")
         
         print("Masks created successfully")
         

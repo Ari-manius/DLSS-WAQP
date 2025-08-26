@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from .lazy_graph_loader import LazyGraphLoader
 
-def evaluate_gnn_model_lazy(data_path, model, mask_type='test', device='cpu', batch_size=1000):
+def evaluate_gnn_model_lazy(data_path, model, mask_type='test', device='cpu', batch_size=1000, run_id=None, use_cv_splits=False, use_kfold=False, n_folds=3):
     """
     Evaluate GNN model using lazy loading to avoid loading the entire graph into memory.
     
@@ -18,8 +18,11 @@ def evaluate_gnn_model_lazy(data_path, model, mask_type='test', device='cpu', ba
     model = model.to(device)
     model.eval()
     
-    # Initialize lazy loader
-    loader = LazyGraphLoader(data_path, batch_size=batch_size, device=device)
+    # Initialize lazy loader with CV parameters
+    loader = LazyGraphLoader(
+        data_path, batch_size=batch_size, device=device, 
+        run_id=run_id, use_cv_splits=use_cv_splits, use_kfold=use_kfold, n_folds=n_folds
+    )
     
     all_predictions = []
     all_targets = []

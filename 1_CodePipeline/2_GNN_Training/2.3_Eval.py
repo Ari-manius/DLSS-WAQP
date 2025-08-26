@@ -1,4 +1,19 @@
 #%%
+"""
+Enhanced GNN Model Evaluation with Cross-Validation Support
+
+This script now supports evaluating models with the same cross-validation splits 
+used during training, ensuring consistent evaluation across different data partitions.
+
+CV Options:
+- USE_CV_SPLITS: Use different data splits for each run (True/False)
+- USE_KFOLD: Use proper k-fold CV where each run tests on different fold (True/False) 
+- n_folds: Number of folds for k-fold CV (default: 3)
+
+The script automatically extracts run_id from model names (e.g., "model_run2" -> "run2")
+and applies the same data split that was used during training.
+"""
+
 from pathlib import Path
 import os
 
@@ -15,7 +30,7 @@ from utils.evaluate_gnn_model_lazy import evaluate_gnn_model_lazy
 from utils.model_loader import get_model_info
 from utils.GNN_model import ImprovedGNN, ResidualGCN, GraphAttentionNet, ResidualGraphSAGE, MLPBaseline
 
-def model_data_judged_auto(data, check, use_lazy_loading=False, batch_size=1000):
+def model_data_judged_auto(data, check, use_lazy_loading=False, batch_size=1000, use_cv_splits=True, use_kfold=False, n_folds=3):
     # Load configuration
     config = get_model_info(f'check/{check}.pt')
     
@@ -69,13 +84,47 @@ def model_data_judged_auto(data, check, use_lazy_loading=False, batch_size=1000)
     model.eval()
     
     if use_lazy_loading:
-        # Use lazy loading evaluation - only pass the data path
+        # Use lazy loading evaluation - extract run_id for CV splits
         data_path = f"data/{data}.pt"
-        result = evaluate_gnn_model_lazy(data_path, model, mask_type='test', device=device, batch_size=batch_size)
+        run_id = None
+        if use_cv_splits and 'run' in check:
+            parts = check.split('_')
+            for part in parts:
+                if part.startswith('run') and part[3:].isdigit():
+                    run_id = part
+                    break
+        
+        result = evaluate_gnn_model_lazy(
+            data_path, model, mask_type='test', device=device, batch_size=batch_size,
+            run_id=run_id, use_cv_splits=use_cv_splits, use_kfold=use_kfold, n_folds=n_folds
+        )
     else:
         # Original evaluation method - load full graph
         data_classification = torch.load(f"data/{data}.pt", weights_only=False)
-        _, _, test_mask = create_split_masks(data_classification)
+        
+        # Extract run_id from checkpoint name to use same data split as training
+        if use_cv_splits and 'run' in check:
+            # Extract run_id from model name (e.g., "enhanced_mlp_data_quantile_Target_QC_aggcat_run1" -> "run1")
+            run_id = None
+            parts = check.split('_')
+            for part in parts:
+                if part.startswith('run') and part[3:].isdigit():
+                    run_id = part
+                    break
+            
+            if run_id:
+                from utils.create_split_masks import create_cv_splits_from_run_id
+                _, _, test_mask = create_cv_splits_from_run_id(
+                    data_classification, run_id, n_folds=n_folds, use_kfold=use_kfold
+                )
+                print(f"🎯 Using CV test split for {run_id} (kfold={use_kfold})")
+            else:
+                _, _, test_mask = create_split_masks(data_classification)
+                print("⚠️  Could not extract run_id, using standard split")
+        else:
+            _, _, test_mask = create_split_masks(data_classification)
+            print("📊 Using standard test split")
+            
         data_classification.test_mask = test_mask
         result = evaluate_gnn_model(data_classification, model, mask_type='test', device=device)
     
@@ -86,7 +135,7 @@ def model_data_judged_auto(data, check, use_lazy_loading=False, batch_size=1000)
 # This eliminates redundant model loading and focuses on robust CV evaluation
 
 #%%
-def evaluate_cross_validation(model_base_names, data_name, runs=[1, 2, 3], use_lazy_loading=True, batch_size=8192):
+def evaluate_cross_validation(model_base_names, data_name, runs=[1, 2, 3], use_lazy_loading=True, batch_size=8192, use_cv_splits=True, use_kfold=False, n_folds=3):
     """
     Evaluate multiple runs of models and calculate cross-validation statistics
     
@@ -109,7 +158,10 @@ def evaluate_cross_validation(model_base_names, data_name, runs=[1, 2, 3], use_l
         for run in runs:
             model_name = f"{model_base}_run{run}"
             try:
-                result, config = model_data_judged_auto(data_name, model_name, use_lazy_loading, batch_size)
+                result, config = model_data_judged_auto(
+                    data_name, model_name, use_lazy_loading, batch_size, 
+                    use_cv_splits, use_kfold, n_folds
+                )
                 run_results.append(result)
                 print(f"  Run {run}: Accuracy = {result[0]['accuracy']:.4f}")
             except Exception as e:
@@ -183,7 +235,14 @@ for i, (model_base, data_name) in enumerate(model_dataset_pairs):
     for run in [1, 2, 3]:
         model_name = f"{model_base}_run{run}"
         try:
-            result, config = model_data_judged_auto(data_name, model_name, use_lazy_loading=True, batch_size=8192)
+            # CONFIGURE CV SETTINGS HERE
+            USE_CV_SPLITS = True  # Set to True to use CV splits, False for standard splits
+            USE_KFOLD = False     # Set to True for k-fold CV, False for random splits
+            
+            result, config = model_data_judged_auto(
+                data_name, model_name, use_lazy_loading=True, batch_size=8192,
+                use_cv_splits=USE_CV_SPLITS, use_kfold=USE_KFOLD, n_folds=3
+            )
             run_results.append(result)
             confusion_matrices.append(result[1])  # Store confusion matrix
             print(f"  Run {run}: Accuracy = {result[0]['accuracy']:.4f}")

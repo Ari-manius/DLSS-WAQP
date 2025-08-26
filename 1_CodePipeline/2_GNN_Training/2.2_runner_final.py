@@ -121,11 +121,15 @@ def build_training_command(model_type, data_file, epochs=100, run_id=1):
     # # GraphSAINT for memory efficiency (except MLP variants)
     # if model_type not in ['mlp', 'mlp_non_network']:
     if model_type == 'gat':
-        cmd += " --use_graphsaint --batch_size 2048 --walk_length 2 --num_steps 8"
+        cmd += " --use_graphsaint --batch_size 2048 --walk_length 2 --num_steps 8  --device auto"
     else:
-        cmd += " --use_graphsaint --batch_size 8192 --walk_length 2 --num_steps 8"
+        cmd += " --device cpu"
     
-    cmd += f" --epochs {epochs} --device auto --run_id run{run_id}"
+    # Add cross-validation options (can be configured here)
+    USE_TRUE_KFOLD = False  # Set to True for proper k-fold CV
+    cmd += f" --epochs {epochs} --run_id run{run_id} --use_cv_splits --n_folds 3"
+    if USE_TRUE_KFOLD:
+        cmd += " --use_kfold"
     
     return cmd
 
@@ -155,7 +159,7 @@ def main():
     # Configuration
     data_file = "data_quantile_Target_QC_aggcat"
     non_network_data_file = "data_nonnetwork_quantile_Target_QC_aggcat"
-    model_types = ['mlp_non_network', 'improved_gnn', 'residual_gcn', 'residual_sage', 'gat', 'mlp']
+    model_types = ['improved_gnn', 'residual_gcn', 'residual_sage', 'gat', 'mlp', 'mlp_non_network']
     epochs = 150
     
     # Show available optimization results

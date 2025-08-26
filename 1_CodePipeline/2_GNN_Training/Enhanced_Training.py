@@ -499,6 +499,9 @@ def main():
     parser.add_argument('--oversample_strategy', type=str, default='boosted', choices=['balanced', 'boosted'], help='Oversampling strategy')
     parser.add_argument('--min_samples_factor', type=int, default=2, help='Minimum samples factor for oversampling')
     parser.add_argument('--run_id', type=str, default=None, help='Unique identifier for this training run')
+    parser.add_argument('--use_cv_splits', action='store_true', help='Use cross-validation splits based on run_id')
+    parser.add_argument('--use_kfold', action='store_true', help='Use true k-fold CV (each run tests different fold)')
+    parser.add_argument('--n_folds', type=int, default=3, help='Number of folds for k-fold CV')
     
     args = parser.parse_args()
     
@@ -550,8 +553,18 @@ def main():
     print("Original data:")
     compute_graph_statistics(data)
     
-    # Create train/val/test splits
-    train_mask, val_mask, test_mask = create_split_masks_regression(data)
+    # Create train/val/test splits - use different splits for each run if requested
+    if args.use_cv_splits and args.run_id is not None:
+        from utils.create_split_masks import create_cv_splits_from_run_id
+        train_mask, val_mask, test_mask = create_cv_splits_from_run_id(
+            data, args.run_id, n_folds=args.n_folds, use_kfold=args.use_kfold
+        )
+        cv_type = "K-fold CV" if args.use_kfold else "Random CV"
+        print(f"📊 Using {cv_type} split for {args.run_id}")
+    else:
+        train_mask, val_mask, test_mask = create_split_masks_regression(data)
+        print("📊 Using standard single split")
+    
     data.train_mask = train_mask
     data.val_mask = val_mask
     data.test_mask = test_mask

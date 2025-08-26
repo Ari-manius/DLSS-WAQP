@@ -72,11 +72,17 @@ The Web enables anyone to read, publish, and share information at unprecedented 
 
 Our project adopts a context-based perspective, leveraging both article relations (external references) and article structure (sections, citations, length). By applying GNNs, we aim to model how signals of reliability and authority propagate through these networks, while complementing them with additional structural features. This network-oriented approach avoids reliance on semantics or style, offering a generalizable and scalable framework for predicting Wikipedia article quality.
 
-## Data Analysis
+# Data
 
-### Dataset Description
+## Data Collection
 
-### Features:
+This project combined four complementary data sources to capture different aspects of Wikipedia articles: the Wikipedia Dump (raw text and structure), the Pageviews API (popularity and user attention), the Edit History API (editorial activity patterns, including user and bot edits), and the Wikipedia API (article crawling and network construction). Article metadata was retrieved by mapping page IDs to titles via the MediaWiki API, which only supports up to 50 IDs per request; page IDs were split into batches of 50, queried in parallel with ThreadPoolExecutor, and merged back into the dataset before saving to CSV. One year of pageview data (July 2023–July 2024) was collected for each article from the Wikimedia REST API, aggregated into annual totals, and stored incrementally to prevent data loss; parallel requests and tqdm progress tracking ensured efficiency. Temporal metadata was added by retrieving last edit timestamps through the REST API’s `/page/summary/{title}` endpoint, using randomized delays (0.3–0.6s), retry logic for HTTP 429 errors, and parallel workers to accelerate processing; results were saved to `final_last_edit.csv`. Editorial activity was captured for July 2023–July 2025, with edit counts broken down by registered users, anonymous users, group bots, and name bots, then aggregated into human vs. bot contributions. To respect API limits, randomized delays, proxy rotation, and periodic checkpoints were used, and data collection was parallelized for efficiency. Together, these steps produced a comprehensive dataset covering article text and structure, popularity, recency, editorial activity, and network relationships, providing a robust foundation for downstream analyses.
+
+The network was obtained by a BFS-search starting at a handful of seed articles (**exact number at least**) and then expanding this seed through following internal links until a sufficient network size was reach. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia.
+
+## Dataset Analysis
+
+### Article Features
 
 A dataset of 379,926 English Wikipedia articles was assembled to support the quality prediction task. The collection combines article-level features, structural metadata, and editing history, enabling both content-independent and behavioral dimensions of quality to be examined. Articles span the full range of Wikipedia’s grading scheme, from Stub to Featured Article (FA), ensuring coverage of different writing styles, completeness levels, and editorial efforts. The design of this dataset is informed by prior research on text, structure, and verifiability [-@bassani2019quality], [-@reddy2021nwqm], [-@redi2019citation] as well as graph-based benchmarks such as Wiki-CS [-@mernyei2020wikics]. Drawing on these insights, the dataset integrates both article-level descriptors and network-oriented variables.
 
@@ -115,9 +121,7 @@ vars <- tribble(
 kable(vars, caption = "Variables grouped by category with their definitions")
 ```
 
-### Edges: ......
-
-### Target Variable:
+### Target Variable: Article Quality
 
 Wikipedia articles are rated on an ordinal quality scale. In this project the following classes are used as the target: FA, FL, FM, A, GA, B, C, Start, Stub, List.
 
@@ -141,18 +145,6 @@ quality_classes <- tribble(
 
 kable(quality_classes, caption = "Wikipedia quality assessment classes and their meaning")
 ```
-
-### Data Collection:
-
-This project combined four complementary data sources to capture different aspects of Wikipedia articles: the Wikipedia Dump (raw text and structure), the Pageviews API (popularity and user attention), the Edit History API (editorial activity patterns, including user and bot edits), and the Wikipedia API (article crawling and network construction). Article metadata was retrieved by mapping page IDs to titles via the MediaWiki API, which only supports up to 50 IDs per request; page IDs were split into batches of 50, queried in parallel with ThreadPoolExecutor, and merged back into the dataset before saving to CSV. One year of pageview data (July 2023–July 2024) was collected for each article from the Wikimedia REST API, aggregated into annual totals, and stored incrementally to prevent data loss; parallel requests and tqdm progress tracking ensured efficiency. Temporal metadata was added by retrieving last edit timestamps through the REST API’s `/page/summary/{title}` endpoint, using randomized delays (0.3–0.6s), retry logic for HTTP 429 errors, and parallel workers to accelerate processing; results were saved to `final_last_edit.csv`. Editorial activity was captured for July 2023–July 2025, with edit counts broken down by registered users, anonymous users, group bots, and name bots, then aggregated into human vs. bot contributions. To respect API limits, randomized delays, proxy rotation, and periodic checkpoints were used, and data collection was parallelized for efficiency. Together, these steps produced a comprehensive dataset covering article text and structure, popularity, recency, editorial activity, and network relationships, providing a robust foundation for downstream analyses.
-
-### Article Target Feature Processing
-
-The dataset was prepared for modeling by constructing target labels and encoding structured features. Using Polars, articles were indexed by title, page ID, and numeric identifiers for efficient lookup. Each article was mapped to its Wikipedia quality class (FA, GA, B, etc.), from which three target variables were derived: a 10-level ordinal scale (`Target_QC_cat`), a 3-tier aggregate scale (`Target_QC_aggcat`), and a log-transformed numeric variant (`Target_QC_numlog`). Categorical and binary attributes were encoded, including protection status (integer labels), infobox presence (binary), and assessment source (one-hot, then reduced with UMAP). The final feature set integrated content metrics (page length, sections, templates, references, categories, links), editorial activity (days since last edit, human vs. bot edits), and popularity (annual pageviews, July 2023–July 2024). Together, these features capture structural, editorial, and popularity dimensions of Wikipedia articles, providing a comprehensive representation for graph construction and machine learning models.
-
-### Graph Preparation for GNN Training
-
-The Wikipedia dataset was converted from graph-tool format into PyTorch Geometric Data objects, with node features, edge features, and target labels systematically encoded (numeric, boolean, and categorical via label or one-hot encoding). To stabilize model training, node features were standardized using multiple scaling techniques (StandardScaler, MinMaxScaler, RobustScaler, QuantileTransformer, PowerTransformer, and log-based scaling), producing several dataset variants. Target variables were derived from `Target_` attributes, with `Target_QC_aggcat` used as the primary classification label. Each processed graph was stored in two forms: a PyTorch tensor dataset (`.pt`) for GNN training and a Parquet file for feature inspection and debugging. This pipeline yielded clean, scalable graph data suitable for downstream learning on Wikipedia article quality prediction.
 
 ### Data Exploration
 
@@ -203,7 +195,7 @@ The heatmap shows strong correlations among structural features, with the highes
     \label{fig:pca_combined}
 \end{figure}
 
-In Feature Distributions plots, most articles cluster at the low end for page length, references, links, sections, pageviews, and recency of edits, with only a few outliers reaching extreme values—reflecting Wikipedia’s heterogeneity, where a small subset dominates in depth and attention.. 
+In Feature Distributions plots, most articles cluster at the low end for page length, references, links, sections, pageviews, and recency of edits, with only a few outliers reaching extreme values—reflecting Wikipedia’s heterogeneity, where a small subset dominates in depth and attention..
 
 \begin{figure}[H]
     \centering
@@ -223,26 +215,9 @@ Pageviews vary widely across classes. While Featured Articles (FA) and Good Arti
 
 Feature Relationships Pairwise feature comparisons show clear clustering by quality: high-quality articles combine length, references, links, and sections in consistent proportions, while low-quality articles remain compact across all dimensions. Pageviews and recency of edits add further variation but only partially align with quality, reinforcing that structural completeness and editorial effort are the strongest signals of quality.
 
-<!-- ![](images/clipboard-2781340232.png){width="469" height="322"}
+### Network Description
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/clipboard-2781340232.png}
-    \caption{Wikipedia Graph - Degree Distribution and Power Law Analysis}
-    \label{fig:pca_combined}
-\end{figure} -->
-
-## Wikipedia Network
-
-The network was obtained by a BFS-search, starting at a handful of seed articles.
-
-### Graph Description
-
--   single CC
--   directed network
--   sparse network
--   reasonably clustered
--   pretty sizeable sample but by no means exhaustive for all of wikipedia
+As already mentioned we create the network from the sampled articles using the internal links of wikipedia articles. This way we obtained a directed network with a single weakly connected component. The network has a  The network is very sparse (Density = 0.0002), which is no suprise for a network of this size. There is also some clustering in the network and the graph has a small diameter (approximated). This make sense since the articles were obtained by BFS and collection did not go further than 2-3 steps. Notable is the high share of reciprocal relations which shows that many articles link each other. 
 
 ```{r, echo=FALSE}
 knitr::kable(data_descriptive, caption = "Network Descriptive Metrics", 
@@ -250,18 +225,28 @@ knitr::kable(data_descriptive, caption = "Network Descriptive Metrics",
               format.args = list(scientific = FALSE))
 ```
 
--   Degree Distribution
--   reasonably similar to powerlaw or lognormal - in any case heavy tailed (very few nodes with a lot of connections), pretty normal for many internet networks, rich-get richer effect
+The degree distributions for the network are very long tailed, which is typical for many internet and citation networks. This can the consequence of the age of articles or some sort of preferential attachment or local redirection mechanism.  
+We see some difference between In- and Out-Degree. In-degrees have a much higher range, up to 75k, while Out-degrees are much smaller, up to 2,5k. This is because an article can be linked to many more articles than it can link itself. Interestingly the means are very similar. 
+The power-law is a marginally better fit for the In-degrees (smaller KS-distance) and $\alpha_{In}$ is lower, but still above 2.
 
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/Degree_PowerLaw.png}
-    \caption{Wikipedia Graph - Degree Distribution and Power Law Analysis}
+    \begin{subfigure}{0.5\textwidth} % Adjust width as needed
+        \centering
+        \includegraphics[width=\textwidth]{Images/InDegree_PowerLaw.png}
+        \label{fig:Number of Components}
+    \end{subfigure}
+    \hfill % This adds space between the two subfigures
+    \begin{subfigure}{0.5\textwidth} % Adjust width as needed
+        \centering
+        \includegraphics[width=\textwidth]{Images/OutDegree_PowerLaw.png}
+        \label{fig:Biggest (weakly) Connected Component}
+    \end{subfigure}
+    \caption{Degree Distributions with Power Law Fits}
     \label{fig:pca_combined}
 \end{figure}
 
--   for none of the tested attributes assortativity could be measured, which is very surprising and also pretty disheartneing
--   basically similar nodes are not neighbors which takes away one of the main theoretic assumptions
+For none of the tested attributes strong assortativity was measured, with different implications. 
+For the degree there is no homophily or heterophily between articles of similar or dissimilar, in- or out-degrees. Showing that the network is not forming structures along these properties.
 
 ```{r, echo=FALSE}
 knitr::kable(data_homophily, caption = "Network Assortativity", 
@@ -269,17 +254,45 @@ knitr::kable(data_homophily, caption = "Network Assortativity",
               format.args = list(scientific = FALSE))
 ```
 
-### Graph based Features
+For the Article-Quality the network is also not showing notable assortativity. There are only marginal increases by changing the encoding of the varibles, either by aggregating categorical varibles or switching to a numerical encoding. Higher values would have proved that articles form homogenous communities based on their quality. This already strongly discourages the hypothesis that Quality-signals propagate directly through channels in the network and only leaves the option of other node-properties being connected to certain qualities. It also already foreshadows why the direct network structure does not provide much help in classifying the article-nodes, since many GNNs rely on homophily by aggregating information from the neighborhood of nodes. 
 
--   pagerank
--   katz (paused beacause of redundancy)
--   betweenness
--   hub/authority
--   degree in
--   degree out
--   core number
--   clustering (local)
-- reciprocity share
+### Network Features
+
+To further enrich the dataset we use the wikipedia graph to create network based features for the article-nodes. The hope is that these will provide crucial additional information to help classifying them. For example it is conceiveable that certain article-qualities are associated with certain structural positions in the network. 
+
+```{R}
+network_features_tbl <- tribble(
+  ~`Feature Category`, ~`Feature Name`,
+  "Degree Centrality", "In-Degree",
+  "Degree Centrality", "Out-Degree", 
+  "Local Structure", "Clustering Coefficient",
+  "Path-based", "Betweenness Centrality",
+  "Core Structure", "Coreness Centrality",
+  "Link Analysis", "PageRank",
+  "Link Analysis", "HITS Hub Score",
+  "Link Analysis", "HITS Authority Score",
+  "Reciprocity", "Share of Reciprocal Relations",
+  "Spectral Features", "Spectral Embedding (9D)",
+  "Spectral Features", "Spectral Modularity Row Sums",
+  "Probabilistic Features", "Transition Probability Max"
+)
+
+kable(network_features_tbl, caption = "Network-based features extracted from Wikipedia Graph")
+```
+
+In the following plots we have separated the articles by their quality. For consistency, the observed trend should preserve the quality-category order (HQ-MQ-LQ). The plotted values are pre-quantile-scaling as that would have greatly hampered their interpretability. 
+
+For In-Degree we see the very low share of very high in-degree articles, mainly in the MQ category. On the lower end of the in-degrees ($<5000$) we see that HQ articles have a higher share of articles with increasing in-degree.
+For the Out-Degree this is much more visible, showing that higher quality articles tend to link to more articles.
+
+The clustering shows that higher quality articles tend to be less clustered, so more functioning as hubs, inhabiting bridging positions, also when having more conenctions share of relations between neighbors rises much slower. Which is also supported by the relatively higher Betweenness centrality. 
+Here the Coreness Centrality somehow speaks of a different picture, showing higher quality networks are more deeply embedded into the network. 
+
+For Page-Rank and both HITS centralities (Hubs and Authority) we see clearly, at least for the Hubs-Score, that higher Quality articles posses higher scores. Unfortunatly this becomes less clear for Authority and Pagerank scores, because of the width of the distributions, showing that a large majority of all articles posses very low scores, but the general trend (HQ>MQ>LQ) held. Here the sampling method might have produced these exceptionally high values, though this is also conformed by the other node-level measures. 
+
+A very interesting case is the share of reciprocal relations. Here we see for HQ and MQ higher shares of low reciprocity and lower shares of high reciprocity. Interestingly LQ articles show a very steady almost linear decline. Which also fits well with the In- and Out-degree results. 
+
+All these results point towards a qualitative difference in node-properties relating to article quality and thus should provide helpful information for classification.
 
 \begin{figure}[H]
     \centering
@@ -288,7 +301,9 @@ knitr::kable(data_homophily, caption = "Network Assortativity",
     \label{fig:pca_combined}
 \end{figure}
 
-Spectral embedding chosen by largest eigenvalue gap. 
+Furthermore we created a 9-Dimensional Spectral Embedding for the graph and used it as features for the dataset. Spectral embedding maps nodes to a low-dimensional space using eigenvectors of graph matrices (like the Laplacian), where the geometric distances preserve the graph's structural relationships. The embedding for the 2-D plot was chosen by the largest eigenvalue gap.
+There is some notable separation over the space, notably along 3-lines. Here probably also the sample structure played a major role in shaping this feature. 
+In the plot we can also see that certain areas are more densely populated by either green or blue, which could be taken as a sign that certain article qualities inhabit a different structural position in the network. This would also support our earlier findings for the other network-features. 
 
 \begin{figure}[H]
     \centering
@@ -299,17 +314,21 @@ Spectral embedding chosen by largest eigenvalue gap.
 
 ## Preprocessing
 
-During the pre-processing we face two important challenges. The first was the highly imbalanced target variable with only a very small fraction of high-quality articles. The second challenge were the heavily skewed distributions, especially for the graph based features.
+During the pre-processing we face two important challenges. The first was the highly imbalanced target variable with only a very small fraction of high-quality articles. The second challenge were the heavily skewed distributions, especially for the graph based features. These have to be adressed to get
 
-Regarding our target variable we tried switching from a classification to a regression problem. This allowed us to circumvent class counts by treating the ordinal categorical attributes as a numerical attribute. The heavily skewed distribution was log-transformed in order to obtain a less skewed distribution. After a brief evaluation, this approach proved to be flawed because the model just made average predictions. We concentrated on the classification approach. A first measure was to aggregated the categories into three ordinal classes from the initial count of nine. This improved class frequencies to a reasonable degree where training and predictions became possible.
+The dataset was prepared for modeling by constructing target labels and encoding structured features. Articles were indexed by title, page ID, and numeric identifiers for efficient lookup. Each article was mapped to its Wikipedia quality class (FA, GA, B, etc.), from which three target variables were derived: a 10-level ordinal scale (`Target_QC_cat`), a 3-tier aggregate scale (`Target_QC_aggcat`) (High Quality (HQ) > Medium Quality (MQ) > Low Quality (LQ) ), and a log-transformed numeric variant (`Target_QC_numlog`). 
 
-The features had to be preprocessed since the numerical ranges were not uniform and fit for training. Here normalization could have solved the problem. However the distributions particularly for the network metrics are immensely positvely skewed. Different kinds such as standard, minmax, robust and robust-log scaling proved to be ineffective to generate reasonably spread distributions. The only approach that brought reasonable results was quantile scaling. Quantile scaling transforms data by mapping each value to its percentile rank, creating a uniform distribution where extreme outliers get compressed while preserving relative order.
+Categorical and binary article-attributes were encoded, including protection status (integer labels), infobox presence (binary), and assessment source (one-hot, then reduced with UMAP). The final feature set integrated content metrics (page length, sections, templates, references, categories, links), editorial activity (days since last edit, human vs. bot edits), and popularity (annual pageviews, July 2023–July 2024). Together, these features capture structural, editorial, and popularity dimensions of Wikipedia articles, providing information for the models.
 
-For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of the network. 
+The features had to be preprocessed since the numerical ranges for many features, especially the network features, were very concentrated to a small range and thus not fit for training. Here normalization proved to be insufficient. The distributions particularly for the network metrics are immensely positvely skewed. Different scaling methods such as standard, minmax, robust and robust-log scaling proved to be ineffective to generate reasonably spread distributions. The only approach that brought reasonable results was quantile scaling. Quantile scaling transforms data by mapping each value to its percentile rank, creating a uniform distribution where extreme outliers get compressed while preserving relative order.
+
+From the wikipedia graphs we removed nodes with total $degree(k) ≤ 1$.
+
+The Wikipedia dataset was converted from graph-tool format into PyTorch Geometric Data objects, with all node features. Each processed graph was stored in two forms: a PyTorch tensor dataset (`.pt`) for GNN training and a Parquet file for feature inspection and debugging. An extra dataset with only article-features was created to compare if using the network features provided helpful information.
 
 # Methods
 
-## Benchmarks 
+## Benchmarks
 
 ### Machine-Learning
 
@@ -317,10 +336,12 @@ For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of 
 
 ## Graph-Neural-Network Models
 
+- Hyperparameter Search 
+
 ### Graph-Convolutional
 
-- Improved GNN
-- Residual GCN
+-   Improved GNN
+-   Residual GCN
 
 ### Graph-Sage
 
@@ -352,6 +373,7 @@ For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of 
     \caption{Test and Validation Loss and Accuracy during Training I} %Visible Caption 
     \label{fig:}
 \end{figure}
+
 
 \begin{figure}[H]
     \begin{subfigure}{0.3\textwidth} 
@@ -389,6 +411,7 @@ For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of 
     \label{fig:pca_combined}
 \end{figure}
 
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/Averaged_Confusion_Matrices.png}
@@ -399,6 +422,11 @@ For the network we remove nodes with total degree(k)$k ≤ 1$, so the leaves of 
 # Discussion and Conclusion
 
 (Performance Comparison, Interpret the results in the context of social network theory, Key Findings and Implications)
+
+- Sampling method biased
+- more extensive testing of architectures and parameters
+- missing assortativity/homophily -> no direct quality propagation (providing network structure did not meaningfully improve GNNs over MLP)
+- some hints for network structure and position being related article quality (MLP performed better), which by a few percentage points is already remarkable, as these have to be stacked in order to provide meaningful improvements
 
 # References
 
