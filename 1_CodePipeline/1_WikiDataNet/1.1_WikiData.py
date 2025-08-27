@@ -18,7 +18,7 @@ def mean_list(class_list):
 
 ######
 print("Loading")
-df_articles = pl.read_csv('data/data_final.csv')
+df_articles = pl.read_csv('data/cleaned_articles_final.csv')
 
 # Create article index dataframe
 df_article_index = pl.DataFrame({

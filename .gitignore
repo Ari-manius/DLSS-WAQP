@@ -3,5 +3,11 @@ data/
 *.csv
 *.pt
 *.gt
-*.parquet.DS_Store
+*.parquet
+.DS_Store
 **/.DS_Store
+.*
+
+# Python
+__pycache__/
+*.pyc

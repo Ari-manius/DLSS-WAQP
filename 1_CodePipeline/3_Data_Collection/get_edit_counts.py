@@ -6,223 +6,227 @@ import random
 import glob
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+import pandas as pd
+import requests
+import time
+from urllib.parse import quote
+import random
+import glob
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
-
+# Load article titles
 df = pd.read_csv("cleaned_articles_final.csv")
 titles = df["article"].tolist()
 
-# Proxy config
+#porxy config
 def get_proxy():
     return {
-        "http": "http://edit_counts_Lb51Z:@pr.oxylabs.io:7777",
-        "https": "http://edit_counts_Lb51Z:@pr.oxylabs.io:7777"
+        "http": "http://edit_counts_Lb51Z:TeamSpeak451_@pr.oxylabs.io:7777",
+        "https": "http://edit_counts_Lb51Z:TeamSpeak451_@pr.oxylabs.io:7777",
     }
+
+# Shared counters
 lock = threading.Lock()
 stats = {
-    'processed': 0,
-    'direct_success': 0,
-    'proxy_used': 0,
-    'rate_limits': 0,
-    'errors': 0,
-    'bandwidth_mb': 0,
-    'consecutive_rate_limits': 0,
-    'zero_edits': 0
+    "processed": 0,
+    "rate_limits": 0,
+    "errors": 0,
+    "proxy_used": 0,
+    "consecutive_rate_limits": 0,
 }
 
-
-def get_article_edits_compliant(title, force_proxy=False):
-    """API-COMPLIANT BASED ON DOCUMENTATION OF THE ENDPOINT:"""
-
-    # delay to stay under 25/sec limit
-    # 6 threads × 4 requests = 24 requests/sec target
+def get_article_edits(title: str, force_proxy: bool = False):
+    """
+    Fetch monthly edit counts (last 2 years window)
+    """
+    # Small delay
     time.sleep(random.uniform(0.16, 0.22))
 
-    # Encode title for URL
-    encoded_title = quote(title.replace(' ', '_'))
-
+    encoded_title = quote(title.replace(" ", "_"))
     editor_types = ["user", "anonymous", "group-bot", "name-bot"]
 
     headers = {
         "Accept": "application/json",
-        "User-Agent": "UniversityofKonstanzResearchBot/1.0 (https://uni-konstanz.de; lorenz.rueckert@uni-konstanz.de)"
+        "User-Agent": "UniversityofKonstanzResearchBot/1.0 (https://uni-konstanz.de; lorenz.rueckert@uni-konstanz.de)",
     }
-    # Proxy rotation
-    with lock:
-        should_use_proxy = (stats['processed'] % 10 == 0)
-        use_proxy = force_proxy or should_use_proxy or stats['consecutive_rate_limits'] >= 3
 
+    # Rotate to proxy every 10th article
+    with lock:
+        rotate = (stats["processed"] % 10 == 0)
+        use_proxy = force_proxy or rotate or stats["consecutive_rate_limits"] >= 3
     proxies = get_proxy() if use_proxy else None
 
-    results = {}
-    failed_count = 0
+    out = {}
+    failed = 0
 
-    # Get data for each editor type
     for i, editor_type in enumerate(editor_types):
-        url = f"https://wikimedia.org/api/rest_v1/metrics/edits/per-page/en.wikipedia.org/{encoded_title}/{editor_type}/monthly/20230701/20250701"
-
+        url = (
+            "https://wikimedia.org/api/rest_v1/metrics/edits/per-page/"
+            f"en.wikipedia.org/{encoded_title}/{editor_type}/monthly/20230701/20250701"
+        )
         try:
-            response = requests.get(url, headers=headers, proxies=proxies, timeout=10)
+            resp = requests.get(url, headers=headers, proxies=proxies, timeout=10)
 
-            if response.status_code == 200:
-                data = response.json()
-                if "items" in data and len(data["items"]) > 0:
-                    monthly_data = data["items"][0].get("results", [])
-                    total_edits = sum(month.get("edits", 0) for month in monthly_data)
-                    results[editor_type] = total_edits
+            if resp.status_code == 200:
+                data = resp.json()
+                if "items" in data and data["items"]:
+                    monthly = data["items"][0].get("results", [])
+                    out[editor_type] = sum(m.get("edits", 0) for m in monthly)
                 else:
-                    results[editor_type] = 0
-            elif response.status_code == 404:
-                results[editor_type] = 0
-            elif response.status_code == 429:
+                    out[editor_type] = 0
+
+            elif resp.status_code == 404:
+                # Page not found  -> treat as zero
+                out[editor_type] = 0
+
+            elif resp.status_code == 429:
                 with lock:
-                    stats['rate_limits'] += 1
-                    stats['consecutive_rate_limits'] += 1
-                return title, None, use_proxy, "RATE_LIMITED"
+                    stats["rate_limits"] += 1
+                    stats["consecutive_rate_limits"] += 1
+                return title, None, "RATE_LIMITED", use_proxy
+
             else:
-                results[editor_type] = 0
-                failed_count += 1
+                out[editor_type] = 0
+                failed += 1
 
-            if i < 3:  # Don't delay after last request
-                time.sleep(random.uniform(0.04, 0.06))  # Small delay between the 4 requests
+        except Exception:
+            out[editor_type] = 0
+            failed += 1
+        if i < 3:
+            time.sleep(random.uniform(0.04, 0.06))
 
-        except Exception as e:
-            results[editor_type] = 0
-            failed_count += 1
+    out["all_editor_types"] = sum(out.values())
 
-    # Calculate total edits
-    results["all_editor_types"] = sum(results.values())
-
-    # Update stats
     with lock:
         if use_proxy:
-            stats['proxy_used'] += 4
-        else:
-            stats['direct_success'] += 4
-        stats['bandwidth_mb'] += 0.008
+            stats["proxy_used"] += 4
+        if failed == 0:
+            stats["consecutive_rate_limits"] = 0
 
-        if failed_count == 0:
-            stats['consecutive_rate_limits'] = 0
+    return title, out, "OK", use_proxy
 
-        if results["all_editor_types"] == 0:
-            stats['zero_edits'] += 1
-        if failed_count > 2:
-            stats['errors'] += 1
+def load_checkpoint():
+    """
+    Resume from the latest checkpoint
+    """
+    files = glob.glob("compliant_checkpoint_*.csv")
+    if not files:
+        return set(), []
 
-    return title, results, use_proxy, "SUCCESS"
+    def suffix_num(path):
+        try:
+            return int(path.rsplit("_", 1)[-1].split(".")[0])
+        except Exception:
+            return -1
 
+    latest = max(files, key=suffix_num)
+    df_ckpt = pd.read_csv(latest)
 
-def save_progress(results, count):
-    """Save checkpoint"""
-    data_rows = []
-    for title, edit_counts in results:
-        if isinstance(edit_counts, dict):
-            row = {
-                "title": title,
-                "edits_all_types": edit_counts.get("all_editor_types", 0),
-                "edits_user": edit_counts.get("user", 0),
-                "edits_anonymous": edit_counts.get("anonymous", 0),
-                "edits_group_bot": edit_counts.get("group-bot", 0),
-                "edits_name_bot": edit_counts.get("name-bot", 0)
-            }
-            # Calculate human and bot totals
-            row["edits_human"] = row["edits_user"] + row["edits_anonymous"]
-            row["edits_bot"] = row["edits_group_bot"] + row["edits_name_bot"]
-        else:
-            row = {
-                "title": title,
-                "edits_all_types": 0,
-                "edits_user": 0,
-                "edits_anonymous": 0,
-                "edits_group_bot": 0,
-                "edits_name_bot": 0,
-                "edits_human": 0,
-                "edits_bot": 0
-            }
-        data_rows.append(row)
+    processed = set(df_ckpt["title"].tolist())
+    results = []
+    for _, row in df_ckpt.iterrows():
+        edit_counts = {
+            "user": int(row.get("edits_user", 0)),
+            "anonymous": int(row.get("edits_anonymous", 0)),
+            "group-bot": int(row.get("edits_group_bot", 0)),
+            "name-bot": int(row.get("edits_name_bot", 0)),
+            "all_editor_types": int(row.get("edits_all_types", 0)),
+        }
+        results.append((row["title"], edit_counts))
 
-    df = pd.DataFrame(data_rows)
-    filename = f"compliant_checkpoint_{count}.csv"
-    df.to_csv(filename, index=False)
-    print(f"💾 COMPLIANT checkpoint: {filename} ({count:,} articles)")
+    print(f"Resuming from {latest} ({len(processed)} titles).")
+    return processed, results
 
+def save_checkpoint(results, count):
+    """
+    Save csv checkpoint
+    """
+    rows = []
+    for title, ec in results:
+        if not isinstance(ec, dict):
+            ec = {"user": 0, "anonymous": 0, "group-bot": 0, "name-bot": 0, "all_editor_types": 0}
+        row = {
+            "title": title,
+            "edits_all_types": ec.get("all_editor_types", 0),
+            "edits_user": ec.get("user", 0),
+            "edits_anonymous": ec.get("anonymous", 0),
+            "edits_group_bot": ec.get("group-bot", 0),
+            "edits_name_bot": ec.get("name-bot", 0),
+        }
+        row["edits_human"] = row["edits_user"] + row["edits_anonymous"]
+        row["edits_bot"] = row["edits_group_bot"] + row["edits_name_bot"]
+        rows.append(row)
+
+    out = pd.DataFrame(rows)
+    name = f"compliant_checkpoint_{count}.csv"
+    out.to_csv(name, index=False)
+    print(f"Saved {name}")
 
 def main():
-    start_time = time.time()
+    processed_titles, all_results = load_checkpoint()
+    remaining = [t for t in titles if t not in processed_titles]
+
+    if not remaining:
+        print("Nothing to do.")
+        return all_results
+
+    # Light threading
     chunk_size = 60
     max_workers = 6
+    start = time.time()
 
+    for start_idx in range(0, len(remaining), chunk_size):
+        chunk = remaining[start_idx : start_idx + chunk_size]
         chunk_results = []
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(get_article_edits_compliant, title): title for title in chunk}
 
-            for future in as_completed(futures, timeout=120):
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            futures = {ex.submit(get_article_edits, t): t for t in chunk}
+            for fut in as_completed(futures, timeout=180):
+                title = futures[fut]
                 try:
-                    title, edit_counts, used_proxy, status = future.result(timeout=30)
+                    t, counts, status, used_proxy = fut.result(timeout=30)
 
+                    # If rate-limited, try once more via proxy
                     if status == "RATE_LIMITED":
-                        print(f"Rate limited: {title[:30]}... retrying with proxy")
-                        time.sleep(random.uniform(3, 6))  # Longer wait for compliance
-                        title, edit_counts, used_proxy, status = get_article_edits_compliant(title, force_proxy=True)
-                        if status == "RATE_LIMITED":
-                            print(f"❌ Still rate limited: {title[:30]}... skipping")
-                            edit_counts = {"user": 0, "anonymous": 0, "group-bot": 0, "name-bot": 0,
-                                           "all_editor_types": 0}
+                        time.sleep(random.uniform(2.0, 4.0))
+                        t, counts, status, used_proxy = get_article_edits(title, force_proxy=True)
+                        if status == "RATE_LIMITED" or counts is None:
+                            counts = {"user": 0, "anonymous": 0, "group-bot": 0, "name-bot": 0, "all_editor_types": 0}
 
-                    if edit_counts is None:
-                        edit_counts = {"user": 0, "anonymous": 0, "group-bot": 0, "name-bot": 0, "all_editor_types": 0}
+                    if counts is None:
+                        counts = {"user": 0, "anonymous": 0, "group-bot": 0, "name-bot": 0, "all_editor_types": 0}
 
-                    chunk_results.append((title, edit_counts))
-
+                    chunk_results.append((title, counts))
                     with lock:
-                        stats['processed'] += 1
+                        stats["processed"] += 1
 
-                        # Show progress every 100 for compliance (less spammy)
-                        if stats['processed'] <= 15 or stats['processed'] % 100 == 0:
-                            proxy_status = "🔄PROXY" if used_proxy else "📡DIRECT"
-                            if used_proxy and stats['processed'] % 10 == 0:
-                                proxy_status += " (rotation)"
-
-                            total = edit_counts.get("all_editor_types", 0)
-                            human = edit_counts.get("user", 0) + edit_counts.get("anonymous", 0)
-                            bot = edit_counts.get("group-bot", 0) + edit_counts.get("name-bot", 0)
-
-                            print(f"✅ {title[:35]:<35} = {total:4d} ({human:3d}👥 {bot:3d}🤖) ({proxy_status})")
-
-                except Exception as e:
-                    title = futures[future]
-                    chunk_results.append(
-                        (title, {"user": 0, "anonymous": 0, "group-bot": 0, "name-bot": 0, "all_editor_types": 0}))
+                except Exception:
                     with lock:
-                        stats['processed'] += 1
-                        stats['errors'] += 1
-                    print(f"Error: {title[:30]}... skipping")
+                        stats["processed"] += 1
+                        stats["errors"] += 1
+                    chunk_results.append((title, {"user": 0, "anonymous": 0, "group-bot": 0, "name-bot": 0, "all_editor_types": 0}))
 
         all_results.extend(chunk_results)
 
-        # Progress report every 3 chunks
-        if chunk_num % 3 == 0:
-            elapsed = time.time() - start_time
-            rate = stats['processed'] / elapsed if elapsed > 0 else 0
-            eta_hours = (len(titles) - stats['processed']) / rate / 3600 if rate > 0 else 0
+        # Minimal progress info per chunk
+        elapsed = max(time.time() - start, 1e-6)
+        rate = stats["processed"] / elapsed
+        print(f"Chunk {(start_idx // chunk_size) + 1}: processed={stats['processed']} rate={rate:.1f}/s RL={stats['rate_limits']} proxy={stats['proxy_used']}")
 
-            with lock:
-                total_requests = stats['direct_success'] + stats['proxy_used']
-                direct_pct = (stats['direct_success'] / total_requests * 100) if total_requests > 0 else 0
-                proxy_pct = (stats['proxy_used'] / total_requests * 100) if total_requests > 0 else 0
+        if len(all_results) % 1500 == 0:
+            save_checkpoint(all_results, len(all_results))
 
-                # Calculate actual request rate
-                req_rate = total_requests / elapsed if elapsed > 0 else 0
-
-            print(
-                f"📊 COMPLIANT: {stats['processed']:,}/{len(titles):,} ({stats['processed'] / len(titles) * 100:.1f}%) "
-                f"⚖️{rate:.1f}/sec ETA:{eta_hours:.1f}h")
-            print(f"   📡Direct:{direct_pct:.0f}% 🔄Proxy:{proxy_pct:.0f}% 💾BW:{stats['bandwidth_mb']:.1f}MB "
-                  f"RL:{stats['rate_limits']}Err:{stats['errors']}ReqRate:{req_rate:.1f}/sec")
-
-        # Save checkpoint every 1,500 articles
-        if len(all_results) % 1500 == 0 and len(all_results) > 0:
-            save_progress(all_results, len(all_results))
-
-        time.sleep(random.uniform(2, 4))
+        # Small pause between chunks
+        time.sleep(random.uniform(1.5, 3.0))
 
     return all_results
+
+if __name__ == "__main__":
+    try:
+        results = main()
+        if results:
+            save_checkpoint(results, len(results))  # final save
+            print(f"Done. Total rows: {len(results)}")
+    except KeyboardInterrupt:
+        print("Interrupted. You can rerun to resume.")
