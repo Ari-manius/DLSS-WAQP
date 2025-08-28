@@ -17,7 +17,7 @@ and applies the same data split that was used during training.
 from pathlib import Path
 import os
 
-new_path = Path('/Users/lorenzruckert/Desktop/Studium/Master/Viertes Semester/Deep Learning/Final Project/DLSS-WAQP/1_CodePipeline/2_GNN_Training')
+new_path = Path('/Users/ramius/Desktop/CodeVault/01_Project/Uni/DLSS_DeepLearningforSocialScientists/Final_Project/DLSS-WAQP/1_CodePipeline/2_GNN_Training')
 os.chdir(new_path)
 
 # %% 
