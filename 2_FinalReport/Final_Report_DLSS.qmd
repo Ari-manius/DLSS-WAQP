@@ -78,8 +78,7 @@ Our project adopts a context-based approach, an alternative to more content-base
 
 This project combined four complementary data sources to capture different aspects of Wikipedia articles: the Wikipedia Dump (raw text and structure), the Pageviews API (popularity and user attention), the Edit History API (editorial activity patterns, including user and bot edits), and the Wikipedia API (article crawling and network construction). Article metadata was retrieved by mapping page IDs to titles via the MediaWiki API, which only supports up to 50 IDs per request; page IDs were split into batches of 50, queried in parallel with ThreadPoolExecutor, and merged back into the dataset before saving to CSV. One year of pageview data (July 2023–July 2024) was collected for each article from the Wikimedia REST API, aggregated into annual totals, and stored incrementally to prevent data loss; parallel requests and tqdm progress tracking ensured efficiency. Temporal metadata was added by retrieving last edit timestamps through the REST API’s `/page/summary/{title}` endpoint, using randomized delays (0.3–0.6s), retry logic for HTTP 429 errors, and parallel workers to accelerate processing; results were saved to `final_last_edit.csv`. Editorial activity was captured for July 2023–July 2025, with edit counts broken down by registered users, anonymous users, group bots, and name bots, then aggregated into human vs. bot contributions. To respect API limits, randomized delays, proxy rotation, and periodic checkpoints were used, and data collection was parallelized for efficiency. Together, these steps produced a comprehensive dataset covering article text and structure, popularity, recency, editorial activity, and network relationships, providing a robust foundation for downstream analyses.
 
-The network was obtained by a BFS-search starting at a handful of seed articles (**exact number at least**) and then expanding this seed through following internal links until a sufficient network size was reached. Then only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia.
-A better approach would have been to follow the one outlined by [-@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019]. 
+The network was obtained by a BFS-search starting at a handful of seed articles (**exact number at least**) and then expanding this seed through following internal links until a sufficient network size was reached. Then only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia. A better approach would have been to follow the one outlined by [-@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019].
 
 ### Article Quality
 
@@ -332,20 +331,33 @@ An extra dataset with only article-features was created to compare if using the 
 
 ### Multi-Layer-Perceptron
 
+The baseline model is implemented as a Multi-Layer Perceptron (MLP) that relies solely on node features, without incorporating any graph structural information. This design allows the model to serve as a benchmark to evaluate the added value of graph-based architectures. The MLP applies input normalization, a linear projection, and GELU activation, followed by three fully connected hidden layers. Each hidden layer is equipped with LayerNorm, residual connections, and adaptive dropout, which together enhance stability and generalization. The output is produced through a final normalization and projection layer.
+
+The optimized configuration specifies a hidden dimension of 128, three layers in total, and a very small dropout rate of approximately 0.014, suggesting that the model benefits from retaining nearly all feature information. Training is performed with a learning rate of 0.00144 and a weight decay of 2.46×10\^-4. To handle the class imbalance in the dataset, Class-Balanced Focal Loss is employed with β = 0.9999 and γ = 2.55. Additionally, boosted oversampling is applied, increasing minority class representation by a factor of about five, with a minimum samples factor of four. Under these optimized settings, the MLP baseline reached a validation score of 0.805, providing a solid reference point for comparison with graph neural network models.
+
 ## Graph-Neural-Network Models
 
 ### Graph-Convolutional
 
 -   Improved GNN
+
+    The Improved GNN integrates multiple architectural enhancements to strengthen learning on imbalanced graph data. The model begins with input preprocessing using LayerNorm and a linear projection into the hidden dimension. It applies three layers of graph convolutions, configurable as either GraphSAGE or GCN, each followed by LayerNorm, GELU activation, and adaptive dropout that decreases in later layers for stability. Weighted residual connections are employed, with residual strength gradually increasing in deeper layers to maintain gradient flow and feature reuse. The final stage includes an output normalization and a projection layer for prediction. Optimization is performed with a learning rate of 0.0173 and weight decay of 4.2×10\^-6. The training objective leverages Class-Balanced Focal Loss with parameters β = 0.9993 and γ = 3.13, effectively addressing class imbalance. This is further reinforced by boosted oversampling with a minimum class boost of approximately 4.84 and a min_samples_factor of 4.
+
 -   Residual GCN
+
+    This model employs a residual Graph Convolutional Network (GCN) architecture enhanced with modern design choices for stability and improved performance on imbalanced graph data. The input features are projected into a hidden dimension using a linear transformation followed by GELU activation. Two GCNConv layers are applied sequentially, each followed by LayerNorm, GELU activation, and dropout. Residual connections are incorporated with a weighting factor of α = 0.9, which prioritizes newly transformed representations while still retaining prior information to ensure gradient stability. A final linear projection produces the classification outputs. Optimization is performed with AdamW using a learning rate of 0.00173 and a weight decay of 2.95×10\^-5. To handle class imbalance, Focal Loss is applied with α = 1.11 and γ = 3.95, together with a boosted oversampling strategy that increases minority class representation by a factor of four.
 
 ### Graph-Sage
 
+The model is based on a residual version of GraphSAGE, designed to enhance stability and performance on imbalanced graph data. The architecture begins with an input projection that embeds the raw node features into a hidden dimension, followed by two SAGEConv layers. Each layer applies LayerNorm, GELU activation, and dropout to improve expressiveness and regularization. Residual connections are incorporated with a weighted coefficient α = 0.85, allowing a balance between new transformed features and the identity mapping from the previous layer. A final linear layer produces the output predictions. Optimization uses AdamW with a learning rate of 0.00128 and weight decay of 0.00729. To address class imbalance, Focal Loss is applied with α = 1.00 and γ = 3.98, combined with a balanced oversampling strategy that increases minority class representation by a factor of four.
+
 ### Graph Attention
+
+It begins with the input features and passes them through three stacked GATConv layers, each followed by LayerNorm to stabilize training. The attention mechanism employs two heads, and the final layer averages their outputs to produce predictions. ELU activations and a dropout rate of approximately 0.64 are applied to enhance generalization and reduce overfitting. Training is carried out with AdamW optimization, using a learning rate of 0.00043 and a weight decay of 7.5×10\^-5. To address class imbalance, Focal Loss is employed with parameters α = 2.83 and γ = 3.78, while boosted oversampling is applied to increase minority class representation with a factor of two.
 
 ## Training and Evaluation
 
-A range of different models was chosen for evaluation. With these candidates we performed a hyperparameter optimization over a limited search space. For each model 16 variants were created. Then started the finals runs where we used 3-fold cross-validation on different splits for each model. 
+A range of different models was chosen for evaluation. With these candidates we performed a hyperparameter optimization over a limited search space. For each model 16 variants were created. Then started the finals runs where we used 3-fold cross-validation on different splits for each model.
 
 \begin{figure}[H]
     \begin{subfigure}{0.3\textwidth} 
@@ -399,7 +411,7 @@ The dataset was partitioned using two different strategies depending on the expe
     \label{fig:}
 \end{figure}
 
-Graph neural networks (GCN, ResidualGCN, ResidualSAGE, GAT) show varying convergence patterns, with some models achieving faster validation accuracy improvements than others. There seems to be a lot of overfitting to training data, especially for the GAT where we dont see much change in validation loss and accuracy, while the training scores are increasing. 
+Graph neural networks (GCN, ResidualGCN, ResidualSAGE, GAT) show varying convergence patterns, with some models achieving faster validation accuracy improvements than others. There seems to be a lot of overfitting to training data, especially for the GAT where we dont see much change in validation loss and accuracy, while the training scores are increasing.
 
 ### Hyperparameter Optimization
 
@@ -409,14 +421,13 @@ The optimization objective combined 60% minority class F1-score with 40% overall
 
 ### Model Training and Validation
 
-Given the severe class imbalance in Wikipedia article quality ratings, multiple strategies were implemented to address this challenge. We experimented with specialized loss functions including Focal Loss (α=1.0-3.0, γ=2.0-4.0), Class-Balanced Focal Loss (β=0.999-0.9999), and Weighted Cross-Entropy. 
+Given the severe class imbalance in Wikipedia article quality ratings, multiple strategies were implemented to address this challenge. We experimented with specialized loss functions including Focal Loss (α=1.0-3.0, γ=2.0-4.0), Class-Balanced Focal Loss (β=0.999-0.9999), and Weighted Cross-Entropy.
 
 Additionally oversampling strategies were employed: "balanced" sampling ensuring equal representation per class, and "boosted" sampling with aggressive minority class enhancement (2.0-5.0x factors). To maintain computational feasibility, memory-safe sampling was limited to 20,000 samples maximum.
 
 All models employed early stopping with patience values between 25-50 epochs and minimum delta thresholds of 1e-4 to prevent overfitting. Optimization utilized the Adam optimizer with OneCycleLR scheduling, featuring cosine annealing and 10% warmup periods. Regularization techniques included gradient clipping (max_norm=1.0) and model-specific dropout rates. Because of memory limitation, GraphSAINT subgraph sampling was implemented with batch sizes of 2048-8192, walk lengths of 2, and 5-8 sampling steps per epoch.
 
-Model performance was assessed using standard classification metrics including accuracy, precision, recall, and F1-scores (macro because of class imbalance). Special attention was paid to minority class performance, given the practical importance of correctly identifying high-quality articles. Cross-validation results report mean performance with standard deviations across runs, providing confidence intervals for model comparisons.
-The MLP baselines, both with and without network features, provide important performance benchmarks for assessing the value of graph structure.
+Model performance was assessed using standard classification metrics including accuracy, precision, recall, and F1-scores (macro because of class imbalance). Special attention was paid to minority class performance, given the practical importance of correctly identifying high-quality articles. Cross-validation results report mean performance with standard deviations across runs, providing confidence intervals for model comparisons. The MLP baselines, both with and without network features, provide important performance benchmarks for assessing the value of graph structure.
 
 # Results
 
