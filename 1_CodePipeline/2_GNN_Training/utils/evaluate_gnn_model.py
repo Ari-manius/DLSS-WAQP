@@ -27,11 +27,27 @@ def evaluate_gnn_model(data, model, mask_type='val', device=None):
         if isinstance(outputs, tuple):
             outputs = outputs[0]  # If the model returns a tuple, select only the logits
 
-        _, predicted = torch.max(outputs[mask], 1)  # Get predicted classes for masked nodes
+        # Check for NaN values in outputs before prediction
+        masked_outputs = outputs[mask]
+        if torch.isnan(masked_outputs).any():
+            print(f"Warning: {torch.isnan(masked_outputs).sum().item()} NaN values found in model outputs")
+            # Replace NaN with very negative values to avoid affecting argmax
+            masked_outputs = torch.where(torch.isnan(masked_outputs), torch.tensor(-1e9, device=masked_outputs.device), masked_outputs)
+        
+        _, predicted = torch.max(masked_outputs, 1)  # Get predicted classes for masked nodes
 
         # Convert to numpy for sklearn metrics
         y_preds = predicted.cpu().numpy()
         y_true = data.y[mask].cpu().numpy()
+        
+        # Final check for NaN in predictions
+        if np.isnan(y_preds).any():
+            print(f"Error: {np.isnan(y_preds).sum()} NaN values still present in predictions")
+            # Remove samples with NaN predictions
+            valid_mask = ~np.isnan(y_preds)
+            y_preds = y_preds[valid_mask]
+            y_true = y_true[valid_mask]
+            print(f"Removed {(~valid_mask).sum()} samples with NaN predictions")
 
     # Calculate accuracy and metrics
     accuracy = accuracy_score(y_true, y_preds)

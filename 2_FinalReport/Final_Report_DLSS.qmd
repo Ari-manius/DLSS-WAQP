@@ -70,7 +70,7 @@ data_homophily <- read.csv("/Users/ramius/Desktop/CodeVault/01_Project/Uni/DLSS_
 
 The Web enables anyone to read, publish, and share information at unprecedented speed and scale, greatly benefiting billions but also creating fertile ground for falsehoods [@kumar2016disinformation]. Wikipedia, as one of the most widely used sources of free knowledge, faces credibility concerns due to hoaxes and the risk of low-quality or biased contributions [@hortaribeiro2020sudden; @kumar2016disinformation; @bassani2019quality]. Although the platform employs a grading scheme from Featured Articles (FA) to Stubs, only a very small fraction of articles reach the highest quality levels, creating an imbalance that resembles anomaly detection, where rare but important cases must be identified [@warnckewang2015success; @bassani2019quality]. To address this, both manual and automated quality assessment methods have been explored. Human volunteers and WikiProjects monitor content, but scale and subjectivity limit their effectiveness. Automated approaches progressed from handcrafted textual features to machine learning models such as doc2vec [@le2014distributed], BiLSTMs, and multimodal systems that integrate images and metadata. Reddy et al. [@reddy2021nwqm] showed that multimodal learning substantially improves prediction, while Bassani and Viviani [@bassani2019quality] highlighted the challenges of reliable ground truth and found textual features more predictive than network ones. Verifiability is another key dimension: Redi et al. [@redi2019citation] introduced a taxonomy of citation reasons and showed that citation practices strongly signal credibility. Yet, as of 2019, more than 350,000 articles carried a tag, suggesting widespread unverified claims. Recent advances in Graph Neural Networks (GNNs) open new opportunities to model Wikipedia not only through text but also through its citation structures. Traditional citation benchmarks (Cora, CiteSeer, PubMed) suffer from limited diversity [@yang2016revisiting; @shchur2018pitfalls], leading to the introduction of Wiki-CS, a richer Wikipedia-based dataset [@mernyei2020wikics]. Within this landscape, approaches can be divided into content-based, focusing on semantics and syntax, and context-based, emphasizing external signals such as social or citation networks [@montiFakeNewsDetection2019].
 
-Our project adopts a context-based approach, an alternative to text-driven methods, by leveraging article relations (internal links) and article structure (sections, citations, length) [@hanGraphNeuralNetworks2020]. A central question here is whether Wikipedia’s internal links function similar to academic citations, where high-quality papers often cite other influential works [@arroyo2020science]. Unlike scholarly references, which carry signals of reliability and authority, Wikipedia’s internal links are often added freely whenever a related article exists. Many wikilinks are automatically generated or inserted via templates (infoboxes, navigation boxes, etc.) [@ruprechter2020relating]. By applying GNNs, we aim to explore to what extent signals of reliability and authority can propagate through these networks and how such context-based signals may complement structural features in predicting article quality. **\[please check this again guys, thy - Lorenz\]**
+Our project adopts a context-based approach, an alternative to text-driven methods, by leveraging article relations (internal links) and article structure (sections, citations, length) [@hanGraphNeuralNetworks2020]. A central question here is whether Wikipedia’s internal links function similar to academic citations, where high-quality papers often cite other influential works [@arroyo2020science]. Unlike scholarly references, which carry signals of reliability and authority, Wikipedia’s internal links are often added freely whenever a related article exists. Many wikilinks are automatically generated or inserted via templates (infoboxes, navigation boxes, etc.) [@ruprechter2020relating]. By applying GNNs, we aim to explore to what extent signals of reliability and authority can propagate through these networks and how such context-based signals may complement structural features in predicting article quality.
 
 # Data
 
@@ -78,7 +78,11 @@ Our project adopts a context-based approach, an alternative to text-driven metho
 
 This project combined three complementary data sources to capture different aspects of Wikipedia articles: the Pageviews API (popularity and user attention), the Edit History API (editorial activity patterns, including user and bot edits), and the Wikipedia API (article crawling and network construction). Article metadata was retrieved by mapping page IDs to titles via the MediaWiki API, which only supports up to 50 IDs per request; page IDs were split into batches of 50, queried in parallel with ThreadPoolExecutor, and merged back into the dataset before saving to CSV. One year of pageview data (July 2023–July 2024) was collected for each article from the Wikimedia REST API, aggregated into annual totals, and stored incrementally to prevent data loss; parallel requests and tqdm progress tracking ensured efficiency. Temporal metadata was added by retrieving last edit timestamps through the REST API’s `/page/summary/{title}` endpoint, using randomized delays (0.3–0.6s), retry logic for HTTP 429 errors, and parallel workers to accelerate processing. Editorial activity was captured for July 2023–July 2025, with edit counts broken down by registered users, anonymous users, group bots, and name bots, then aggregated into human vs. bot contributions. To respect API limits, randomized delays, proxy usage and periodic checkpoints were used; data collection was parallelized for efficiency. Together, these steps produced a comprehensive dataset covering article text and structure, popularity, recency, editorial activity, and network relationships, providing a robust foundation for downstream analyses.
 
+<<<<<<< HEAD
 \<\<\<\<\<\<\< HEAD The network was obtained by a BFS-search starting at a handful of seed articles (**exact number at least**) and then expanding this seed through following internal links until a sufficient network size was reached. Then only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia. A better approach would have been to follow the one outlined by [-@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019]. ======= The network was obtained by a BFS-search starting with 4 seed articles (Influenza, Serena Williams, French Revolution, Quantum mechanics) and then expanding this seed through following internal links until a sufficient network size was reached. Each seed-article belongs to one of the four largest Wiki-Projects (Serena Williams → WikiProject Biography (largest), Influenza → WikiProject Medicine, French Revolution → WikiProject History, Quantum mechanics → WikiProject Physics). This was done to get a solid variety of article data. Only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia. A better approach would have been to follow the one outlined by [@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019]. \>\>\>\>\>\>\> d6a1d9ebcaaa3add12c9391b611addbe222c833f
+=======
+The network was obtained by a BFS-search starting with 4 seed articles (Influenza, Serena Williams, French Revolution, Quantum mechanics) and then expanding this seed through following internal links until a sufficient network size was reached. Each seed-article belongs to one of the four largest Wiki-Projects (Serena Williams → WikiProject Biography (largest), Influenza → WikiProject Medicine, French Revolution → WikiProject History, Quantum mechanics → WikiProject Physics). This was done to get a solid variety of article data. Only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia. A better approach would have been to follow the one outlined by [@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019].
+>>>>>>> fcd614205727ef3fcea5141d8a10ce5a3427cf51
 
 ### Article Quality
 
@@ -457,18 +461,18 @@ Our evaluation covered multiple GNN architectures, traditional ML baselines, and
 
 Residual GraphSAGE achieved the highest accuracy at 80.50%, followed closely by Random Forest at 79.57%. The GNN approaches showed mixed results - while Residual GCN reached 75.62% and standard GCN got 74.45%, GAT performed poorly at only 39.39%. This GAT failure likely stems from the networks lack of homophily, which we observed in our assortativity analysis. GAT's attention mechanism needs meaningful neighbor relationships, but our network structure doesn't provide this.
 
-Comparing the MLP variants and investigating the importance of features used by the Random Forest reveals that network features matter: the full-feature model (75.26%) outperformed the article-only version (71.80%) by 3.46 percentage points. All our models beat the ORES baseline (64.12%) by substantial margins. **(Is this fair tho? because ORES is six-way and were 3 way (agg_cat?)? - Lorenz)**
+Comparing the MLP variants and investigating the importance of features used by the Random Forest reveals that network features matter: the full-feature model (75.26%) outperformed the article-only version (71.80%) by 3.46 percentage points. All our models beat the ORES baseline (64.12%) by substantial margins.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth, height=10cm, keepaspectratio]{Images/accuracy_comparison_final.png}
+    \includegraphics[width=\textwidth, height=8cm, keepaspectratio]{Images/accuracy_comparison_final.png}
     \caption{Final accuracy comparison across all evaluated models}
     \label{fig:accuracy_comparison}
 \end{figure}
 
 ## Which Features matter?
 
-The Random Forest analysis let us gauge which features drive quality predictions. Content structure dominates - page_length (18.51%), num_references (12.67%) and num_sections (7.78%) are the top predictors.
+The Random Forest analysis lets us gauge which features drive quality predictions. Content structure dominates - page_length (18.51%), num_references (12.67%) and num_sections (7.78%) are the top predictors.
 
 Network features also contribute meaningfully: degree_out_centrality (3.40%), transition_max_prob (3.13%), and hub scores (2.45%) all rank in the top 10. The spectral embeddings capture additional structural patterns that explicit network metrics miss. Editorial activity like total edits (2.76%) provides another quality signal.
 
@@ -507,9 +511,12 @@ Residual SAGE's success over other GNNs makes sense given our network analysis. 
 
 # References
 
-## Code and Data
+## Code and Data \[Whats supposed to go here? - Lorenz\]
 
 -   API´s
 -   Python Packages
+-   Link to Git
+-   APIs we used
+-   Packages we used
 
 ## Literature
