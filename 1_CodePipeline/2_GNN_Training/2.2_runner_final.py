@@ -123,7 +123,7 @@ def build_training_command(model_type, data_file, epochs=100, run_id=1):
     if model_type == 'gat':
         cmd += " --use_graphsaint --batch_size 2048 --walk_length 2 --num_steps 8  --device auto"
     else:
-        cmd += " --device cpu"
+        cmd += " --use_graphsaint --batch_size 8192 --walk_length 2 --num_steps 8  --device auto"
     
     # Add cross-validation options (can be configured here)
     USE_TRUE_KFOLD = False  # Set to True for proper k-fold CV

@@ -71,8 +71,21 @@ def model_data_judged_auto(data, check, use_lazy_loading=False, batch_size=1000,
         
     model = model_class(**model_kwargs)
     
-    # Load state dict
-    model.load_state_dict(checkpoint['model_state_dict'])
+    # Load state dict - handle torch.compile() prefix issue
+    state_dict = checkpoint['model_state_dict']
+    if any(key.startswith('_orig_mod.') for key in state_dict.keys()):
+        # Remove _orig_mod prefix from compiled model state dict
+        cleaned_state_dict = {}
+        for key, value in state_dict.items():
+            if key.startswith('_orig_mod.'):
+                cleaned_key = key[10:]  # Remove '_orig_mod.' prefix
+                cleaned_state_dict[cleaned_key] = value
+            else:
+                cleaned_state_dict[key] = value
+        print("🔧 Fixed torch.compile() prefix in state dict")
+        model.load_state_dict(cleaned_state_dict)
+    else:
+        model.load_state_dict(state_dict)
     
     # Move to MPS if available
     if use_lazy_loading:
@@ -290,7 +303,7 @@ def plot_cv_results_with_error_bars(cv_results):
     Plot cross-validation results with error bars showing standard deviation
     """
     models = list(cv_results.keys())
-    model_names = ['GCN', 'Residual GCN', 'GAT', 'Residual SAGE', 'MLP Full-Features', 'MLP Article-Features']
+    model_names = models  # Use actual model keys instead of hardcoded list
     metrics = ['accuracy', 'precision', 'recall', 'f1_score']
     metric_labels = ['Accuracy', 'Macro Precision', 'Macro Recall', 'Macro F1-Score']
     
