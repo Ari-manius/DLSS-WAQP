@@ -40,7 +40,7 @@ def fetch_titles(batch):
     ids_str = "|".join(str(pid) for pid in batch)
     url = f"https://en.wikipedia.org/w/api.php?action=query&pageids={ids_str}&format=json"
     headers = {
-        "User-Agent": "WikipediaQualityBot/1.0 (your_email@example.com)"
+        "User-Agent": "WikipediaQualityBot/1.0"
     }
     try:
         response = requests.get(url, headers=headers, timeout=10)

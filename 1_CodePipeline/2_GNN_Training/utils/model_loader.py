@@ -74,8 +74,22 @@ def load_trained_model(checkpoint_path, device='auto'):
             
         model = model_class(**model_kwargs)
         
-        # Load weights
-        model.load_state_dict(checkpoint['model_state_dict'])
+        # Load weights - handle torch.compile() prefix issue
+        state_dict = checkpoint['model_state_dict']
+        if any(key.startswith('_orig_mod.') for key in state_dict.keys()):
+            # Remove _orig_mod prefix from compiled model state dict
+            cleaned_state_dict = {}
+            for key, value in state_dict.items():
+                if key.startswith('_orig_mod.'):
+                    cleaned_key = key[10:]  # Remove '_orig_mod.' prefix
+                    cleaned_state_dict[cleaned_key] = value
+                else:
+                    cleaned_state_dict[key] = value
+            print("🔧 Fixed torch.compile() prefix in state dict")
+            model.load_state_dict(cleaned_state_dict)
+        else:
+            model.load_state_dict(state_dict)
+        
         model.to(device)
         model.eval()
         
