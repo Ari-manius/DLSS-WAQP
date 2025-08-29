@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 import random
+from scipy import sparse
+from scipy.sparse.linalg import eigsh
 
 def log_progress(message):
     timestamp = datetime.now().strftime("%H:%M:%S")
@@ -137,11 +139,11 @@ def get_quality_colors(G_sample, G_full, sampled_vertices):
             quality_val = quality_full[v_orig]
             quality_values.append(quality_val)
     
-    # Create color mapping
+    # Create color mapping using grey-blue-red colormap
     color_map = {
-        0: '#2E8B57',  # Sea Green for Low Quality
-        1: '#4169E1',  # Royal Blue for Medium Quality  
-        2: '#DC143C'   # Crimson Red for High Quality
+        0: '#808080',  # Grey for Low Quality
+        1: '#4169E1',  # Blue for Medium Quality  
+        2: '#DC143C'   # Red for High Quality
     }
     
     # Prepare node colors
@@ -149,19 +151,86 @@ def get_quality_colors(G_sample, G_full, sampled_vertices):
     
     return quality_values, node_colors
 
-def create_clean_visualization(G_sample, node_colors, output_path="network_clean.png"):
+def spectral_embedding_2d(G):
+    """Compute 2D spectral embedding using normalized graph Laplacian"""
+    log_progress("Computing spectral embedding...")
+    
+    # Get adjacency matrix as sparse matrix
+    A = gt.adjacency(G, weight=None)
+    n = A.shape[0]
+    
+    # Compute degree matrix
+    degrees = np.array(A.sum(axis=1)).flatten()
+    
+    # Handle isolated vertices
+    degrees = np.maximum(degrees, 1e-12)
+    
+    # Compute normalized Laplacian: L = I - D^(-1/2) A D^(-1/2)
+    D_inv_sqrt = sparse.diags(1.0 / np.sqrt(degrees))
+    L_norm = sparse.eye(n) - D_inv_sqrt @ A @ D_inv_sqrt
+    
+    # Compute smallest eigenvalues and eigenvectors
+    try:
+        # Get 4 smallest eigenvalues to compute gaps
+        eigenvals, eigenvecs = eigsh(L_norm, k=min(4, n-1), which='SM', sigma=0)
+        
+        # Sort by eigenvalue (should already be sorted)
+        idx = np.argsort(eigenvals)
+        eigenvals = eigenvals[idx]
+        eigenvecs = eigenvecs[:, idx]
+        
+        log_progress(f"Eigenvalues: {eigenvals[:4]}")
+        
+        # Use 2nd and 3rd eigenvectors for 2D coordinates (skip trivial first)
+        if eigenvecs.shape[1] >= 3:
+            pos_2d = eigenvecs[:, [1, 2]]
+        elif eigenvecs.shape[1] >= 2:
+            # Fallback: use 1st and 2nd if only 2 available
+            pos_2d = eigenvecs[:, [0, 1]]
+        else:
+            # Fallback: random positions if spectral fails
+            log_progress("Warning: Spectral embedding failed, using random positions")
+            pos_2d = np.random.randn(n, 2)
+        
+        # Compute eigenvalue gaps
+        gaps = []
+        if len(eigenvals) > 1:
+            for i in range(len(eigenvals)-1):
+                gaps.append(eigenvals[i+1] - eigenvals[i])
+        
+        largest_gap = max(gaps) if gaps else 0
+        log_progress(f"Eigenvalue gaps: {gaps}")
+        log_progress(f"Largest eigenvalue gap: {largest_gap:.6f}")
+        
+        # Scale positions for better visualization
+        pos_2d = pos_2d * 10
+        
+        return pos_2d, largest_gap, eigenvals
+        
+    except Exception as e:
+        log_progress(f"Spectral embedding failed: {e}, using random positions")
+        pos_2d = np.random.randn(n, 2)
+        return pos_2d, 0, []
+
+def create_clean_visualization(G_sample, node_colors, output_path="network_clean.png", use_spectral=True):
     """Create clean network visualization without text or titles"""
-    log_progress("Computing layout...")
-    pos = gt.sfdp_layout(G_sample, K=1., C=0.2, p=1.0, max_iter=200)
+    
+    if use_spectral:
+        # Use spectral embedding
+        pos_2d, eigenvalue_gap, eigenvals = spectral_embedding_2d(G_sample)
+        log_progress(f"Using spectral embedding with gap: {eigenvalue_gap:.6f}")
+    else:
+        # Use force-directed layout
+        log_progress("Computing force-directed layout...")
+        pos = gt.sfdp_layout(G_sample, K=1., C=0.2, p=1.0, max_iter=500)
+        pos_2d = pos.get_2d_array([0, 1]).T
+        eigenvalue_gap = None
     
     log_progress("Creating clean visualization...")
     
     # Create figure with no text
     fig, ax = plt.subplots(1, 1, figsize=(12, 12))
     ax.set_aspect('equal')
-    
-    # Get node positions
-    pos_array = pos.get_2d_array([0, 1]).T
     
     # Draw edges (limited for performance)
     edge_count = 0
@@ -171,19 +240,19 @@ def create_clean_visualization(G_sample, node_colors, output_path="network_clean
             break
         source_idx = int(e.source())
         target_idx = int(e.target())
-        if source_idx < len(pos_array) and target_idx < len(pos_array):
-            ax.plot([pos_array[source_idx][0], pos_array[target_idx][0]], 
-                   [pos_array[source_idx][1], pos_array[target_idx][1]], 
+        if source_idx < len(pos_2d) and target_idx < len(pos_2d):
+            ax.plot([pos_2d[source_idx][0], pos_2d[target_idx][0]], 
+                   [pos_2d[source_idx][1], pos_2d[target_idx][1]], 
                    'k-', alpha=0.1, linewidth=0.3, zorder=1)
             edge_count += 1
     
     log_progress(f"Drew {edge_count} edges")
     
     # Draw nodes
-    ax.scatter(pos_array[:, 0], pos_array[:, 1], 
+    ax.scatter(pos_2d[:, 0], pos_2d[:, 1], 
                c=node_colors, s=20, alpha=0.8, zorder=2, edgecolors='white', linewidth=0.2)
     
-    log_progress(f"Drew {len(pos_array)} nodes")
+    log_progress(f"Drew {len(pos_2d)} nodes")
     
     # Remove all text, labels, ticks, spines
     ax.set_xticks([])
@@ -203,7 +272,7 @@ def create_clean_visualization(G_sample, node_colors, output_path="network_clean
                 facecolor='white', edgecolor='none')
     
     plt.show()
-    return fig
+    return fig, eigenvalue_gap
 
 def main():
     """Main execution function"""
@@ -225,11 +294,13 @@ def main():
             G_sample, G_full, sampled_vertices
         )
         
-        # Create clean visualization
-        create_clean_visualization(G_sample, node_colors, OUTPUT_IMAGE)
+        # Create clean visualization with spectral embedding
+        _, eigenvalue_gap = create_clean_visualization(G_sample, node_colors, OUTPUT_IMAGE, use_spectral=True)
         
-        log_progress("Clean visualization completed!")
-        print(f"✓ Clean network saved as: {OUTPUT_IMAGE}")
+        log_progress("Spectral visualization completed!")
+        print(f"✓ Spectral network saved as: {OUTPUT_IMAGE}")
+        if eigenvalue_gap:
+            print(f"✓ Eigenvalue gap: {eigenvalue_gap:.6f}")
         
     except Exception as e:
         print(f"Error: {e}")

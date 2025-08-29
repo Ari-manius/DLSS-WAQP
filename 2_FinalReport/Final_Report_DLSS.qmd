@@ -45,7 +45,7 @@ header-includes:
   - \predate{\begin{center}\large} 
   - \postdate{\begin{figure}[H]
       \centering
-      \includegraphics[width=.9\textwidth]{Images/wiki_network_clean.png}
+      \includegraphics[width=.8\textwidth]{Images/wiki_network_clean.png}
     \end{figure}
     \end{center}} 
 bibliography: references.bib
@@ -491,9 +491,9 @@ Overall, our findings suggest that while GNNs may not be the ideal model for thi
 -   <https://wikimedia.org/api/rest_v1/metrics/edits/:> Collected detailed edit history data
 -   <https://ores.wikimedia.org/:> Benchmark
 
-### Important Python Packages
+<!-- ### Important Python Packages -->
 
--   Data Processing & Machine Learning:
+<!-- -   Data Processing & Machine Learning: -->
 
     -   pandas & polars
 
