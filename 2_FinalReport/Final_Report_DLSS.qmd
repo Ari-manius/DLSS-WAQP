@@ -78,8 +78,7 @@ Our project adopts a context-based approach, an alternative to more content-base
 
 This project combined four complementary data sources to capture different aspects of Wikipedia articles: the Wikipedia Dump (raw text and structure), the Pageviews API (popularity and user attention), the Edit History API (editorial activity patterns, including user and bot edits), and the Wikipedia API (article crawling and network construction). Article metadata was retrieved by mapping page IDs to titles via the MediaWiki API, which only supports up to 50 IDs per request; page IDs were split into batches of 50, queried in parallel with ThreadPoolExecutor, and merged back into the dataset before saving to CSV. One year of pageview data (July 2023–July 2024) was collected for each article from the Wikimedia REST API, aggregated into annual totals, and stored incrementally to prevent data loss; parallel requests and tqdm progress tracking ensured efficiency. Temporal metadata was added by retrieving last edit timestamps through the REST API’s `/page/summary/{title}` endpoint, using randomized delays (0.3–0.6s), retry logic for HTTP 429 errors, and parallel workers to accelerate processing; results were saved to `final_last_edit.csv`. Editorial activity was captured for July 2023–July 2025, with edit counts broken down by registered users, anonymous users, group bots, and name bots, then aggregated into human vs. bot contributions. To respect API limits, randomized delays, proxy rotation, and periodic checkpoints were used, and data collection was parallelized for efficiency. Together, these steps produced a comprehensive dataset covering article text and structure, popularity, recency, editorial activity, and network relationships, providing a robust foundation for downstream analyses.
 
-The network was obtained by a BFS-search starting at a handful of seed articles (**exact number at least**) and then expanding this seed through following internal links until a sufficient network size was reached. Then only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia.
-A better approach would have been to follow the one outlined by [-@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019]. 
+The network was obtained by a BFS-search starting at a handful of seed articles (**exact number at least**) and then expanding this seed through following internal links until a sufficient network size was reached. Then only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia. A better approach would have been to follow the one outlined by [-@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019].
 
 ### Article Quality
 
@@ -221,7 +220,7 @@ Feature Relationships Pairwise feature comparisons show clear clustering by qual
 
 ### Network Description
 
-As already mentioned we create the network from the sampled articles using the internal links of wikipedia articles. This way we obtained a directed network with a single weakly connected component. The network has a The network is very sparse (Density = 0.0002), which is no suprise for a network of this size. There is also some clustering in the network and the graph has a small diameter (approximated). This make sense since the articles were obtained by BFS and collection did not go further than 2-3 steps. Notable is the high share of reciprocal relations which shows that many articles link each other.
+As already mentioned we create the network from the sampled articles using the internal links of wikipedia articles. This way we obtained a directed network with a single weakly connected component. The network has a The network is very sparse (Density = 0.0002), which is no surprise for a network of this size. There is also some clustering in the network and the graph has a small diameter (approximated). This make sense since the articles were obtained by BFS and collection did not go further than 2-3 steps. Notable is the high share of reciprocal relations which shows that many articles link each other.
 
 ```{r, echo=FALSE}
 knitr::kable(data_descriptive, caption = "Network Descriptive Metrics", 
@@ -332,6 +331,10 @@ An extra dataset with only article-features was created to compare if using the 
 
 ### Multi-Layer-Perceptron
 
+-   Full Features
+
+-   Non-network Features
+
 ## Graph-Neural-Network Models
 
 ### Graph-Convolutional
@@ -345,7 +348,7 @@ An extra dataset with only article-features was created to compare if using the 
 
 ## Training and Evaluation
 
-A range of different models was chosen for evaluation. With these candidates we performed a hyperparameter optimization over a limited search space. For each model 16 variants were created. Then started the finals runs where we used 3-fold cross-validation on different splits for each model. 
+A range of different models was chosen for evaluation. With these candidates we performed a hyperparameter optimization over a limited search space. For each model 16 variants were created. Then started the finals runs where we used 3-fold cross-validation on different splits for each model.
 
 \begin{figure}[H]
     \begin{subfigure}{0.3\textwidth} 
@@ -372,7 +375,7 @@ A range of different models was chosen for evaluation. With these candidates we 
     \label{fig:}
 \end{figure}
 
-The dataset was partitioned using two different strategies depending on the experimental phase. For hyperparameter optimization, a 70/15/15 (train/validation/test) split was employed on a single random partition. For final model evaluation, we used an 80/10/10 split across three different random seeds (42, 142, 242) to ensure reproducibility and assess model stability. This approach follows graph-aware splitting principles, preserving the connectivity structure essential for GNN performance.
+The dataset was partitioned using two different strategies depending on the experimental phase. For hyperparameter optimization, a 70/15/15 (train/validation/test) split was employed on a single random partition. For final model evaluation, we used an 80/10/10 split across three different random seeds (42, 142, 242) to assess model stability. This approach follows graph-aware splitting principles, preserving the connectivity structure essential for GNN performance.
 
 \begin{figure}[H]
     \begin{subfigure}{0.3\textwidth} 
@@ -399,7 +402,7 @@ The dataset was partitioned using two different strategies depending on the expe
     \label{fig:}
 \end{figure}
 
-Graph neural networks (GCN, ResidualGCN, ResidualSAGE, GAT) show varying convergence patterns, with some models achieving faster validation accuracy improvements than others. There seems to be a lot of overfitting to training data, especially for the GAT where we dont see much change in validation loss and accuracy, while the training scores are increasing. 
+Graph neural networks (GCN, ResidualGCN, ResidualSAGE, GAT) show varying convergence patterns, with some models achieving faster validation accuracy improvements than others. There seems to be a lot of overfitting to training data, especially for the GAT where we dont see much change in validation loss and accuracy, while the training scores are increasing.
 
 ### Hyperparameter Optimization
 
@@ -409,14 +412,13 @@ The optimization objective combined 60% minority class F1-score with 40% overall
 
 ### Model Training and Validation
 
-Given the severe class imbalance in Wikipedia article quality ratings, multiple strategies were implemented to address this challenge. We experimented with specialized loss functions including Focal Loss (α=1.0-3.0, γ=2.0-4.0), Class-Balanced Focal Loss (β=0.999-0.9999), and Weighted Cross-Entropy. 
+Given the severe class imbalance in Wikipedia article quality ratings, multiple strategies were implemented to address this challenge. We experimented with specialized loss functions including Focal Loss (α=1.0-3.0, γ=2.0-4.0), Class-Balanced Focal Loss (β=0.999-0.9999), and Weighted Cross-Entropy.
 
 Additionally oversampling strategies were employed: "balanced" sampling ensuring equal representation per class, and "boosted" sampling with aggressive minority class enhancement (2.0-5.0x factors). To maintain computational feasibility, memory-safe sampling was limited to 20,000 samples maximum.
 
 All models employed early stopping with patience values between 25-50 epochs and minimum delta thresholds of 1e-4 to prevent overfitting. Optimization utilized the Adam optimizer with OneCycleLR scheduling, featuring cosine annealing and 10% warmup periods. Regularization techniques included gradient clipping (max_norm=1.0) and model-specific dropout rates. Because of memory limitation, GraphSAINT subgraph sampling was implemented with batch sizes of 2048-8192, walk lengths of 2, and 5-8 sampling steps per epoch.
 
-Model performance was assessed using standard classification metrics including accuracy, precision, recall, and F1-scores (macro because of class imbalance). Special attention was paid to minority class performance, given the practical importance of correctly identifying high-quality articles. Cross-validation results report mean performance with standard deviations across runs, providing confidence intervals for model comparisons.
-The MLP baselines, both with and without network features, provide important performance benchmarks for assessing the value of graph structure.
+Model performance was assessed using standard classification metrics including accuracy, precision, recall, and F1-scores (macro because of class imbalance). Special attention was paid to minority class performance, given the practical importance of correctly identifying high-quality articles. Cross-validation results report mean performance with standard deviations across runs, providing confidence intervals for model comparisons. The MLP baselines, both with and without network features, provide important performance benchmarks for assessing the value of graph structure.
 
 # Results
 
@@ -443,7 +445,7 @@ The MLP baselines, both with and without network features, provide important per
 -   imbalanced classes with very small HQ class
 -   more extensive testing of architectures and parameters
 -   missing assortativity/homophily -\> no direct quality propagation (providing network structure did not meaningfully improve GNNs over MLP)
--   some hints for network structure and position being related article quality (MLP performed better), which by a few percentage points is already remarkable, as these have to be stacked in order to provide meaningful improvements
+-   some hints for network structure and position being related article quality (MLP with performed better), which by a few percentage points is already remarkable, as these buffs have to be stacked in order to provide meaningful improvements
 
 # References
 
@@ -453,5 +455,3 @@ The MLP baselines, both with and without network features, provide important per
 -   Python Packages
 
 ## Literature
-
--   Citeable papers
