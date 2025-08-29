@@ -130,13 +130,13 @@ def model_data_judged_auto(data, check, use_lazy_loading=False, batch_size=1000,
                 _, _, test_mask = create_cv_splits_from_run_id(
                     data_classification, run_id, n_folds=n_folds, use_kfold=use_kfold
                 )
-                print(f"🎯 Using CV test split for {run_id} (kfold={use_kfold})")
+                print(f"Using CV test split for {run_id} (kfold={use_kfold})")
             else:
                 _, _, test_mask = create_split_masks(data_classification)
-                print("⚠️  Could not extract run_id, using standard split")
+                print("Could not extract run_id, using standard split")
         else:
             _, _, test_mask = create_split_masks(data_classification)
-            print("📊 Using standard test split")
+            print("Using standard test split")
             
         data_classification.test_mask = test_mask
         result = evaluate_gnn_model(data_classification, model, mask_type='test', device=device)
@@ -412,6 +412,14 @@ def plot_averaged_confusion_matrices_efficient(confusion_matrices_by_model):
 
 # Generate averaged confusion matrices efficiently (no model re-loading!)
 averaged_confusion_matrices = plot_averaged_confusion_matrices_efficient(confusion_matrices_by_model)
+
+# Generate confusion matrices including RF and ORES
+
+try:
+    from combine_results_and_visualize import plot_all_confusion_matrices
+    all_confusion_matrices = plot_all_confusion_matrices(confusion_matrices_by_model)
+except Exception as e:
+    print(f"Could not generate confusion matrices: {e}")
 
 #%%
 # Save CV results as JSON
