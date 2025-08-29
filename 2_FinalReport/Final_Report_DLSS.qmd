@@ -453,6 +453,10 @@ Our evaluation covered multiple GNN architectures, traditional ML baselines, and
     \label{fig:cv_results}
 \end{figure}
 
+Some models showed zero variance across runs (Residual GCN, GAT, Residual SAGE), while others had healthy variance around 0.4-0.6%. The zero-variance cases might indicate very stable convergence or potential issues with local optima.
+
+Class imbalance handling varied significantly. Random Forest achieved the best macro F1-score (62.04%), while neural approaches clustered around 48-53%. This suggests the tree-based approach handles minority classes better than the neural networks, despite the various loss functions and sampling strategies we tried. Residual SAGE's success over other GNNs makes sense given our network analysis. Its sampling approach works better in sparse, heterophilic networks where traditional message-passing assumptions break down. Rather than assuming similar nodes cluster together, SAGE can aggregate from diverse neighborhoods, which fits Wikipedia's link structure better.
+
 ## Model Performance
 
 Residual GraphSAGE achieved the highest accuracy at 80.50%, followed closely by Random Forest at 79.57%. The GNN approaches showed mixed results - while Residual GCN reached 75.62% and standard GCN got 74.45%, GAT performed poorly at only 39.39%. This GAT failure likely stems from the networks lack of homophily, which we observed in our assortativity analysis. GAT's attention mechanism needs meaningful neighbor relationships, but our network structure doesn't provide this.
@@ -466,6 +470,21 @@ Comparing the MLP variants and investigating the importance of features used by 
     \label{fig:accuracy_comparison}
 \end{figure}
 
+## Classification Patterns Across Model Types
+
+The confusion matrices show clear differences in how the models handle the three quality classes. The Random Forest stands out with the most balanced results across Low, Medium, and High quality articles, which is reflected in its stronger macro F1-score.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth, height=8cm, keepaspectratio]{Images/All_Confusion_Matrices_with_RF_ORES.png}
+    \caption{Confusion matrices for all models}
+    \label{fig:confusion_matrices}
+\end{figure}
+
+By contrast, the neural models tend to favor the dominant Low Quality class. They perform reliably on Low Quality articles but often misclassify High Quality ones, leading to weaker recall for this minority group. This is especially visible for GAT, which struggles overall, likely because Wikipedia’s link network does not provide the kind of homophily its attention mechanism relies on.
+
+ORES shows a different pattern: while it reaches decent accuracy (64.12%), its predictions are uneven across classes, with weaker performance on Low and High Quality. This suggests that ORES may be tuned toward other goals than our three-class setup.
+
 ## Which Features matter?
 
 The Random Forest analysis lets us gauge which features drive quality predictions. Content structure dominates - page_length (18.51%), num_references (12.67%) and num_sections (7.78%) are the top predictors.
@@ -474,45 +493,66 @@ Network features also contribute meaningfully: degree_out_centrality (3.40%), tr
 
 The permutation importance results largely agree with Gini importance for the top features, confirming page_length and num_references as robust predictors across different measurement approaches.
 
-## Cross-Validation Patterns
-
-Some models showed zero variance across runs (Residual GCN, GAT, Residual SAGE), while others had healthy variance around 0.4-0.6%. The zero-variance cases might indicate very stable convergence or potential issues with local optima.
-
-Class imbalance handling varied significantly. Random Forest achieved the best macro F1-score (62.04%), while neural approaches clustered around 48-53%. This suggests the tree-based approach handles minority classes better than the neural networks, despite the various loss functions and sampling strategies we tried.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth, height=8cm, keepaspectratio]{Images/Averaged_Confusion_Matrices.png}
-    \caption{Averaged confusion matrices across cross-validation runs for all models [NEED THE ALL CONFUSION MATRICES PNG HERE - Lorenz]}
-    \label{fig:confusion_matrices}
-\end{figure}
-
-Residual SAGE's success over other GNNs makes sense given our network analysis. Its sampling approach works better in sparse, heterophilic networks where traditional message-passing assumptions break down. Rather than assuming similar nodes cluster together, SAGE can aggregate from diverse neighborhoods, which fits Wikipedia's link structure better.
-
 # Discussion and Conclusion
 
-(Performance Comparison, Interpret the results in the context of social network theory, Key Findings and Implications)
+The comparison across models highlights both the potential and the limits of network-based approaches for Wikipedia quality prediction. Sampling only parts of the graph likely introduced bias, and the strong class imbalance, especially the very small number of high-quality articles made the task challenging for all models. While more extensive testing of architectures and parameters could refine results, the main issue is structural: Wikipedia’s link network shows little homophily, so quality does not propagate directly through connections. This explains why GNNs provided no meaningful advantage over MLPs.
 
--   Sampling method biased, alternative whole network approach
+At the same time, the benchmarks reveal that network context is not irrelevant. The MLP with network features outperformed the article-only version by several percentage points, and the Random Forest feature importance analysis showed that measures like out-degree or hub scores, while secondary, still add value alongside dominant structural predictors such as page length and number of references. This reflects a broader distinction from academic citation networks: internal Wikipedia links are added mainly for navigation rather than endorsement. Consequently, link-based features alone cannot predict quality, but article position in the network can still provide useful complementary signals.
 
--   imbalanced classes with very small HQ class
-
--   more extensive testing of architectures and parameters
-
--   missing assortativity/homophily -\> no direct quality propagation (providing network structure did not meaningfully improve GNNs over MLP)
-
--   some hints for network structure and position being related article quality (MLP performed better), which by a few percentage points is already remarkable, as these have to be stacked in order to provide meaningful improvements
-
--   The feature importance seen in the RF results reflect a broader characteristic of the underlying Wikipedia link graph. Unlike academic citations - internal Wikipedia links are added mainly for navigation and cohesion rather than endorsement. Consequently, link-based features alone do not strongly predict article quality, though an article’s position in the network can still carry valuable information. This distinction between links and citations underlines why structural features remain dominant, while network features add only complementary value to our quality assessment models.
+Overall, our findings suggest that while GNNs may not be the ideal model for this task under current conditions, combining structural and positional information remains a promising direction, particularly if future work addresses class imbalance and employs whole-network sampling strategies.
 
 # References
 
-## Code and Data \[Whats supposed to go here? - Lorenz\]
+## Code and Data
 
--   API´s
--   Python Packages
--   Link to Git
--   APIs we used
--   Packages we used
+### API Endpoints
+
+Our data collection pipeline integrated multiple Wikipedia/Wikimedia APIs to gather comprehensive article information:
+
+-   <https://wikimedia.org/api/rest_v1/metrics/pageviews/:> Retrieved monthly pageview statistics
+-   <https://en.wikipedia.org/api/rest_v1/:> Accessed article summaries and last edit timestamps
+-   <https://en.wikipedia.org/w/api.php:> Batch-retrieved article metadata
+-   <https://wikimedia.org/api/rest_v1/metrics/edits/:> Collected detailed edit history data
+-   <https://ores.wikimedia.org/:> Benchmark
+
+### Important Python Packages
+
+-   Data Processing & Machine Learning:
+
+    -   pandas & polars
+
+    -    scikit-learn
+
+-   Data manipulation and analysis:
+
+    -   numpy
+
+    -    umap-learn
+
+-   Graph Analysis & Neural Networks:
+
+    -   graph-tool
+
+    -    torch & torch-geometric
+
+    -   optuna
+
+-   Visualization & Results:
+
+    -    matplotlib & seaborn
+
+    -    tqdm
+
+-   Specialized Libraries:
+
+    -   scipy
+
+    -   concurrent.futures
+
+    -   requests
+
+### Repository
+
+The complete codebase, documentation, and reproducible experiments are available at: <https://github.com/Ari-manius/DLSS-WAQP>
 
 ## Literature

@@ -413,13 +413,8 @@ def plot_averaged_confusion_matrices_efficient(confusion_matrices_by_model):
 # Generate averaged confusion matrices efficiently (no model re-loading!)
 averaged_confusion_matrices = plot_averaged_confusion_matrices_efficient(confusion_matrices_by_model)
 
-# Generate confusion matrices including RF and ORES
-
-try:
-    from combine_results_and_visualize import plot_all_confusion_matrices
-    all_confusion_matrices = plot_all_confusion_matrices(confusion_matrices_by_model)
-except Exception as e:
-    print(f"Could not generate confusion matrices: {e}")
+# Comprehensive confusion matrices (including RF and ORES) are now generated 
+# in combine_results_and_visualize.py using the saved confusion_matrices.json data
 
 #%%
 # Save CV results as JSON

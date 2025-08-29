@@ -1,9 +1,9 @@
 import json
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 from pathlib import Path
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 def load_all_results():
     """Load results from  GNNs, MLPs, ORES, and Random Forest"""
@@ -32,9 +32,16 @@ def calculate_ores_confusion_matrix():
     y_true = ores_df['true_label_numeric'].values
     y_pred = ores_df['ores_aggcat'].values
     
+    # Remove NaN values
+    valid_mask = ~(pd.isna(y_true) | pd.isna(y_pred))
+    y_true_clean = y_true[valid_mask]
+    y_pred_clean = y_pred[valid_mask]
+    
+    print(f"ORES data: {len(y_true)} total samples, {len(y_true_clean)} valid samples")
+    
     # Create confusion matrix
     from sklearn.metrics import confusion_matrix
-    cm = confusion_matrix(y_true, y_pred, labels=[0, 1, 2])
+    cm = confusion_matrix(y_true_clean, y_pred_clean, labels=[0, 1, 2])
     
     return cm
 
@@ -185,8 +192,6 @@ def plot_unified_comparison(unified_results, output_dir='../../2_FinalReport/Ima
     
     #Summary table
     create_results_table(unified_results, available_models, display_names, output_dir)
-    
-    plt.show()
 
 def create_results_table(unified_results, available_models, display_names, output_dir):
     """Create results table"""
@@ -220,10 +225,14 @@ def create_results_table(unified_results, available_models, display_names, outpu
     
     return df_results
 
-def plot_all_confusion_matrices(gnn_confusion_matrices, output_dir='../../2_FinalReport/Images'):
-    """Create confusion matrices for all models"""
+def plot_all_confusion_matrices_from_json(output_dir='../../2_FinalReport/Images'):
+    """Create confusion matrices for all models with the json"""
     
     Path(output_dir).mkdir(exist_ok=True)
+    
+    # Load from json
+    with open('confusion_matrices.json', 'r') as f:
+        gnn_cm_data = json.load(f)
     
     # Load RF
     with open('random_forest_results.json', 'r') as f:
@@ -233,17 +242,15 @@ def plot_all_confusion_matrices(gnn_confusion_matrices, output_dir='../../2_Fina
     # Calculate ORES confusion matrix
     ores_cm = calculate_ores_confusion_matrix()
     
-    # Combine
+    # Combine all matrices
     all_confusion_matrices = {}
     
-    # Add GNN/MLP confusion matrices
-    model_names_gnn = ['GCN', 'Residual GCN', 'GAT', 'Residual SAGE', 'MLP Full-Features', 'MLP Article-Features']
-    for i, (model_name, cms) in enumerate(gnn_confusion_matrices.items()):
-        if len(cms) > 0:
-            averaged_cm = np.mean(cms, axis=0)
-            all_confusion_matrices[model_name] = averaged_cm
+    # Add GNN/MLP confusion matrice
+    for model_name, data in gnn_cm_data.items():
+        if 'averaged_matrix' in data:
+            all_confusion_matrices[model_name] = np.array(data['averaged_matrix'])
     
-    # Add Random Forest
+    # Add RF
     rf_averaged = np.mean(rf_confusion_matrices, axis=0)
     all_confusion_matrices['Random Forest'] = rf_averaged
     
@@ -257,7 +264,7 @@ def plot_all_confusion_matrices(gnn_confusion_matrices, output_dir='../../2_Fina
     
     fig, axes = plt.subplots(rows, cols, figsize=(5*cols, 4*rows))
     
-    # Handle differentconfigs
+    # Handle different subplot configurations
     if n_models == 1:
         axes = [axes]
     elif rows == 1:
@@ -269,7 +276,7 @@ def plot_all_confusion_matrices(gnn_confusion_matrices, output_dir='../../2_Fina
     class_labels = ['Low Quality', 'Medium Quality', 'High Quality']
     
     for i, (model_name, cm) in enumerate(all_confusion_matrices.items()):
-        # Normalize confusion matrix
+        # Normalize cm
         cm_normalized = cm.astype('float') / cm.sum(axis=1, keepdims=True)
         
         # Create heatmap
@@ -283,7 +290,8 @@ def plot_all_confusion_matrices(gnn_confusion_matrices, output_dir='../../2_Fina
         elif model_name == 'Random Forest':
             title = f'{model_name}\nConfusion Matrix (Avg across 3 runs)'
         else:
-            n_runs = len(gnn_confusion_matrices.get(model_name, []))
+            # For GNN models, get number of runs from JSON data
+            n_runs = len(gnn_cm_data.get(model_name, {}).get('individual_runs', []))
             title = f'{model_name}\nConfusion Matrix (Avg across {n_runs} runs)'
             
         axes[i].set_title(title, fontsize=10, fontweight='bold')
@@ -297,9 +305,14 @@ def plot_all_confusion_matrices(gnn_confusion_matrices, output_dir='../../2_Fina
     plt.tight_layout()
     plt.savefig(f'{output_dir}/All_Confusion_Matrices_with_RF_ORES.png', 
                 dpi=300, bbox_inches='tight')
-    plt.show()
+    plt.close()  # Close figure to free memory
     
     return all_confusion_matrices
+
+def plot_all_confusion_matrices(gnn_confusion_matrices, output_dir='../../2_FinalReport/Images'):
+    """Create confusion matrices for all models - legacy function"""
+    # Redirect to JSON-based function
+    return plot_all_confusion_matrices_from_json(output_dir)
 
 def print_summary_statistics(unified_results):
     """Print summary statistics"""
@@ -320,6 +333,17 @@ def load_gnn_confusion_matrices():
     # This would normally be loaded from the eval.py execution
     return {}
 
+def generate_confusion_matrices_only():
+    try:
+        print("Generating all in one confusion matrix")
+        result_cms = plot_all_confusion_matrices_from_json()
+        return result_cms
+    except Exception as error:
+        print(f"Eorro: {error}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 if __name__ == "__main__":
     
     # Load all results
@@ -334,18 +358,9 @@ if __name__ == "__main__":
     # Create visualizations
     plot_unified_comparison(unified_results)
     
-    # Create comprehensive confusion matrices if GNN confusion matrices are available
-    try:
-        # Try to load confusion matrices from eval.py execution
-        # If confusion_matrices_by_model exists in scope, use it
-        if 'confusion_matrices_by_model' in globals():
-            print("\nGenerating comprehensive confusion matrices...")
-            all_cms = plot_all_confusion_matrices(confusion_matrices_by_model)
-            print("Confusion matrices saved successfully!")
-        else:
-            print("\nGNN confusion matrices not available. Run eval.py first to generate comprehensive confusion matrices.")
-    except Exception as e:
-        print(f"\nCould not generate comprehensive confusion matrices: {e}")
+    # Create comprehensive confusion matrices using JSON data
+    all_cms = plot_all_confusion_matrices_from_json()
+    print("All in one CM saved")
     
     # Save combined results
     with open('unified_results.json', 'w') as f:
