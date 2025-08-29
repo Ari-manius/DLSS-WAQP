@@ -78,7 +78,7 @@ Our project adopts a context-based approach, an alternative to text-driven metho
 
 This project combined three complementary data sources to capture different aspects of Wikipedia articles: the Pageviews API (popularity and user attention), the Edit History API (editorial activity patterns, including user and bot edits), and the Wikipedia API (article crawling and network construction). Article metadata was retrieved by mapping page IDs to titles via the MediaWiki API, which only supports up to 50 IDs per request; page IDs were split into batches of 50, queried in parallel with ThreadPoolExecutor, and merged back into the dataset before saving to CSV. One year of pageview data (July 2023–July 2024) was collected for each article from the Wikimedia REST API, aggregated into annual totals, and stored incrementally to prevent data loss; parallel requests and tqdm progress tracking ensured efficiency. Temporal metadata was added by retrieving last edit timestamps through the REST API’s `/page/summary/{title}` endpoint, using randomized delays (0.3–0.6s), retry logic for HTTP 429 errors, and parallel workers to accelerate processing. Editorial activity was captured for July 2023–July 2025, with edit counts broken down by registered users, anonymous users, group bots, and name bots, then aggregated into human vs. bot contributions. To respect API limits, randomized delays, proxy usage and periodic checkpoints were used; data collection was parallelized for efficiency. Together, these steps produced a comprehensive dataset covering article text and structure, popularity, recency, editorial activity, and network relationships, providing a robust foundation for downstream analyses.
 
-The network was obtained by a BFS-search starting with 4 seed articles (Influenza, Serena Williams, French Revolution, Quantum mechanics) and then expanding this seed through following internal links until a sufficient network size was reached. Each seed-article belongs to one of the four largest Wiki-Projects (Serena Williams → WikiProject Biography (largest), Influenza → WikiProject Medicine, French Revolution → WikiProject History, Quantum mechanics → WikiProject Physics). This was done to get a solid variety of article data. Only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia. A better approach would have been to follow the one outlined by [@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019].
+\<\<\<\<\<\<\< HEAD The network was obtained by a BFS-search starting at a handful of seed articles (**exact number at least**) and then expanding this seed through following internal links until a sufficient network size was reached. Then only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia. A better approach would have been to follow the one outlined by [-@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019]. ======= The network was obtained by a BFS-search starting with 4 seed articles (Influenza, Serena Williams, French Revolution, Quantum mechanics) and then expanding this seed through following internal links until a sufficient network size was reached. Each seed-article belongs to one of the four largest Wiki-Projects (Serena Williams → WikiProject Biography (largest), Influenza → WikiProject Medicine, French Revolution → WikiProject History, Quantum mechanics → WikiProject Physics). This was done to get a solid variety of article data. Only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia. A better approach would have been to follow the one outlined by [@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019]. \>\>\>\>\>\>\> d6a1d9ebcaaa3add12c9391b611addbe222c833f
 
 ### Article Quality
 
@@ -344,16 +344,29 @@ We query the Wikimedia ORES article-quality model for the same test articles, us
 
 -   Non-network Features
 
+The baseline model is implemented as a Multi-Layer Perceptron (MLP) that relies solely on node features, without incorporating any graph structural information. This design allows the model to serve as a benchmark to evaluate the added value of graph-based architectures. The MLP applies input normalization, a linear projection, and GELU activation, followed by three fully connected hidden layers. Each hidden layer is equipped with LayerNorm, residual connections, and adaptive dropout, which together enhance stability and generalization. The output is produced through a final normalization and projection layer.
+
+The optimized configuration specifies a hidden dimension of 128, three layers in total, and a very small dropout rate of approximately 0.014, suggesting that the model benefits from retaining nearly all feature information. Training is performed with a learning rate of 0.00144 and a weight decay of 2.46×10\^-4. To handle the class imbalance in the dataset, Class-Balanced Focal Loss is employed with β = 0.9999 and γ = 2.55. Additionally, boosted oversampling is applied, increasing minority class representation by a factor of about five, with a minimum samples factor of four. Under these optimized settings, the MLP baseline reached a validation score of 0.805, providing a solid reference point for comparison with graph neural network models.
+
 ## Graph-Neural-Network Models
 
 ### Graph-Convolutional
 
 -   Improved GNN
+
+    The Improved GNN integrates multiple architectural enhancements to strengthen learning on imbalanced graph data. The model begins with input preprocessing using LayerNorm and a linear projection into the hidden dimension. It applies three layers of graph convolutions, configurable as either GraphSAGE or GCN, each followed by LayerNorm, GELU activation, and adaptive dropout that decreases in later layers for stability. Weighted residual connections are employed, with residual strength gradually increasing in deeper layers to maintain gradient flow and feature reuse. The final stage includes an output normalization and a projection layer for prediction. Optimization is performed with a learning rate of 0.0173 and weight decay of 4.2×10\^-6. The training objective leverages Class-Balanced Focal Loss with parameters β = 0.9993 and γ = 3.13, effectively addressing class imbalance. This is further reinforced by boosted oversampling with a minimum class boost of approximately 4.84 and a min_samples_factor of 4.
+
 -   Residual GCN
+
+    This model employs a residual Graph Convolutional Network (GCN) architecture enhanced with modern design choices for stability and improved performance on imbalanced graph data. The input features are projected into a hidden dimension using a linear transformation followed by GELU activation. Two GCNConv layers are applied sequentially, each followed by LayerNorm, GELU activation, and dropout. Residual connections are incorporated with a weighting factor of α = 0.9, which prioritizes newly transformed representations while still retaining prior information to ensure gradient stability. A final linear projection produces the classification outputs. Optimization is performed with AdamW using a learning rate of 0.00173 and a weight decay of 2.95×10\^-5. To handle class imbalance, Focal Loss is applied with α = 1.11 and γ = 3.95, together with a boosted oversampling strategy that increases minority class representation by a factor of four.
 
 ### Graph-Sage
 
+The model is based on a residual version of GraphSAGE, designed to enhance stability and performance on imbalanced graph data. The architecture begins with an input projection that embeds the raw node features into a hidden dimension, followed by two SAGEConv layers. Each layer applies LayerNorm, GELU activation, and dropout to improve expressiveness and regularization. Residual connections are incorporated with a weighted coefficient α = 0.85, allowing a balance between new transformed features and the identity mapping from the previous layer. A final linear layer produces the output predictions. Optimization uses AdamW with a learning rate of 0.00128 and weight decay of 0.00729. To address class imbalance, Focal Loss is applied with α = 1.00 and γ = 3.98, combined with a balanced oversampling strategy that increases minority class representation by a factor of four.
+
 ### Graph Attention
+
+It begins with the input features and passes them through three stacked GATConv layers, each followed by LayerNorm to stabilize training. The attention mechanism employs two heads, and the final layer averages their outputs to produce predictions. ELU activations and a dropout rate of approximately 0.64 are applied to enhance generalization and reduce overfitting. Training is carried out with AdamW optimization, using a learning rate of 0.00043 and a weight decay of 7.5×10\^-5. To address class imbalance, Focal Loss is employed with parameters α = 2.83 and γ = 3.78, while boosted oversampling is applied to increase minority class representation with a factor of two.
 
 ## Training and Evaluation
 
@@ -444,7 +457,7 @@ Our evaluation covered multiple GNN architectures, traditional ML baselines, and
 
 Residual GraphSAGE achieved the highest accuracy at 80.50%, followed closely by Random Forest at 79.57%. The GNN approaches showed mixed results - while Residual GCN reached 75.62% and standard GCN got 74.45%, GAT performed poorly at only 39.39%. This GAT failure likely stems from the networks lack of homophily, which we observed in our assortativity analysis. GAT's attention mechanism needs meaningful neighbor relationships, but our network structure doesn't provide this.
 
-Comparing the MLP variants and investigating the importance of features used by the Random Forest reveals that network features matter: the full-feature model (75.26%) outperformed the article-only version (71.80%) by 3.46 percentage points. All our models beat the ORES baseline (64.12%) by substantial margins. **(Is this fair tho? because ORES is six-way and were 3 way (agg_cat?)? - Lorenz)**
+Comparing the MLP variants and investigating the importance of features used by the Random Forest reveals that network features matter: the full-feature model (75.26%) outperformed the article-only version (71.80%) by 3.46 percentage points. All our models beat the ORES baseline (64.12%) by substantial margins.
 
 \begin{figure}[H]
     \centering
@@ -455,7 +468,7 @@ Comparing the MLP variants and investigating the importance of features used by 
 
 ## Which Features matter?
 
-The Random Forest analysis let us gauge which features drive quality predictions. Content structure dominates - page_length (18.51%), num_references (12.67%) and num_sections (7.78%) are the top predictors.
+The Random Forest analysis lets us gauge which features drive quality predictions. Content structure dominates - page_length (18.51%), num_references (12.67%) and num_sections (7.78%) are the top predictors.
 
 Network features also contribute meaningfully: degree_out_centrality (3.40%), transition_max_prob (3.13%), and hub scores (2.45%) all rank in the top 10. The spectral embeddings capture additional structural patterns that explicit network metrics miss. Editorial activity like total edits (2.76%) provides another quality signal.
 
@@ -487,13 +500,14 @@ Residual SAGE's success over other GNNs makes sense given our network analysis. 
 -   more extensive testing of architectures and parameters
 
 -   missing assortativity/homophily -\> no direct quality propagation (providing network structure did not meaningfully improve GNNs over MLP)
+
 -   some hints for network structure and position being related article quality (MLP performed better), which by a few percentage points is already remarkable, as these have to be stacked in order to provide meaningful improvements
 
 -   The feature importance seen in the RF results reflect a broader characteristic of the underlying Wikipedia link graph. Unlike academic citations - internal Wikipedia links are added mainly for navigation and cohesion rather than endorsement. Consequently, link-based features alone do not strongly predict article quality, though an article’s position in the network can still carry valuable information. This distinction between links and citations underlines why structural features remain dominant, while network features add only complementary value to our quality assessment models.
 
 # References
 
-## Code and Data
+## Code and Data \[Whats supposed to go here? - Lorenz\]
 
 -   API´s
 -   Python Packages

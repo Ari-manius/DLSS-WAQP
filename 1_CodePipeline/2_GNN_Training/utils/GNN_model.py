@@ -435,7 +435,7 @@ class ImprovedGNN(torch.nn.Module):
         
         return x
 
-
+   
 class MLPBaseline(torch.nn.Module):
     """
     Multi-Layer Perceptron (MLP) baseline model.
