@@ -30,7 +30,9 @@ format:
       \preauthor{\begin{center}\large}
       \postauthor{\end{center}}
       \predate{\begin{center}\large}
-      \postdate{\begin{figure}[H]\centering\includegraphics[width=.9\textwidth]{Images/wiki_network_clean.png}\end{figure}\end{center}}
+      \postdate{\begin{figure}[H]\centering\includegraphics[width=.7\textwidth]{Images/cover_image2.png}\end{figure}\end{center}}
+
+
       
 
       % Slightly tighter line spacing
