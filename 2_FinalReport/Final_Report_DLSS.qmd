@@ -2,52 +2,75 @@
 title: "Wikipedia Article Quality Prediction"
 subtitle: "Final Report: DLSS"
 author: 
-  - name: "Nafiseh Tavakol, Kuon Ito, Lorenz, Rückert, Marius Helten \n
-  https://github.com/Ari-manius/DLSS-WAQP"
+  - name: "Nafiseh Tavakol, Kuon Ito, Lorenz, Rückert, Marius Helten \n https://github.com/Ari-manius/DLSS-WAQP"
     affiliation: "1406810"
 editor: visual
-date: "`r format(Sys.Date(), '%B %d, %Y')`" 
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+
+# KOMA class + options
+documentclass: scrartcl
+classoption:
+  - DIV=11
+  - numbers=noendperiod
+  - titlepage 
+
 format:
   pdf:
+    geometry: top=0.6in, bottom=0.7in, left=0.55in, right=0.55in, includefoot, footskip=10pt
     colorlinks: true
     links-as-notes: true
-    include-in-header: |
-      % Margins
-      \geometry{top=0.7in, bottom=0.7in, left=0.6in, right=0.6in}
+    header-includes: |
+      \KOMAoption{captions}{tableheading}
+      \usepackage{caption}
+      \captionsetup{font=small}
+      % Title block styling (first page)
+      \usepackage{titling}
+      \pretitle{\begin{center}\Huge\bfseries}
+      \posttitle{\end{center}}
+      \preauthor{\begin{center}\large}
+      \postauthor{\end{center}}
+      \predate{\begin{center}\large}
+      \postdate{\begin{figure}[H]\centering\includegraphics[width=.9\textwidth]{Images/wiki_network_clean.png}\end{figure}\end{center}}
+      
 
-      % Slightly tighter line spacing (helps overall)
+      % Slightly tighter line spacing
       \usepackage{setspace}
       \setstretch{1.02}
 
-      % Force compact paragraphs after all packages load
+      % Compact paragraphs: no extra vertical gap, small indent
       \AtBeginDocument{%
-        \setlength{\parskip}{0pt}%  no vertical gap between paragraphs
-        \setlength{\parindent}{1em}% small indent to mark new paragraph
+        \setlength{\parskip}{0pt}%
+        \setlength{\parindent}{1em}%
       }
 
-      % Most visible spacing is around headings – tighten it
-      \usepackage{titlesec}
-      \titlespacing*{\section}{0pt}{0.6\baselineskip}{0.25\baselineskip}
-      \titlespacing*{\subsection}{0pt}{0.45\baselineskip}{0.2\baselineskip}
-      \titlespacing*{\subsubsection}{0pt}{0.4\baselineskip}{0.18\baselineskip}
+      % ----- TIGHT HEADINGS (KOMA way) -----
+      % Remove/near-remove space AFTER headings (no titlesec)
+      % Note: a NEGATIVE afterskip makes it run-in.
+      \RedeclareSectionCommand[
+        beforeskip=0.8ex plus .2ex minus .2ex,
+        afterskip=0.2ex
+      ]{section}
 
-      % Lists also add space – remove it
+      \RedeclareSectionCommand[
+        beforeskip=0.8ex plus .2ex minus .2ex,
+        afterskip=0.2ex
+      ]{subsection}
+
+      % Run-in subsubsection (heading flows directly into text)
+      \RedeclareSectionCommand[
+        beforeskip=0.8ex plus .2ex minus .2ex,
+        afterskip=-0.5ex
+      ]{subsubsection}
+
+       % ----- Heading fonts (classic academic style) -----
+      \setkomafont{section}{\itshape\Large}          % big bold serif
+      \setkomafont{subsection}{\itshape\normalsize}  % bold serif
+      \setkomafont{subsubsection}{\bfseries\normalsize}% italic serif
+       
+      % Compact lists
       \usepackage{enumitem}
       \setlist{nosep}
-    
 
-header-includes:
-  - \usepackage{titling}  
-  - \pretitle{\begin{center}\LARGE\bfseries} 
-  - \posttitle{\end{center}}  
-  - \preauthor{\begin{center} \large} 
-  - \postauthor{\end{center}} 
-  - \predate{\begin{center}\large} 
-  - \postdate{\begin{figure}[H]
-      \centering
-      \includegraphics[width=.9\textwidth]{Images/wiki_network_clean.png}
-    \end{figure}
-    \end{center}} 
 bibliography: references.bib
 cite-method: citeproc
 link-citations: true
@@ -146,41 +169,47 @@ kable(vars, caption = "Variables grouped by category with their definitions")
 
 The dataset comprises \~380,000 Wikipedia articles labeled with quality classes, but the distribution is highly imbalanced: most articles fall into low-quality categories (Stub, Start), while only a small minority reach high-quality levels (FA, GA, FL, A). Quality progression is evident—higher-quality articles are much longer and include richer structural and citation features such as references, links, and sections. In contrast, Stub and Start articles remain short and sparsely referenced, reflecting limited editorial development. These patterns confirm that structural richness and citation density are closely associated with editorial quality.
 
+The heatmap shows strong correlations among structural features, with the highest between page length and references (0.86), indicating that longer articles are usually better structured and more thoroughly referenced. Links are also positively correlated but provide partly independent information. A log–log scatter plot of links versus references confirms this trend: articles with more links often include more references, though variation remains, showing that links and references capture complementary aspects of article richness.
+
 \begin{figure}[H]
+  \centering
+  \begin{minipage}[b]{0.48\textwidth}
     \centering
     \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/quality_distribution.png}
     \caption{Distribution of Wikipedia article quality classes}
     \label{fig:quality_distribution}
-\end{figure}
-
-The heatmap shows strong correlations among structural features, with the highest between page length and references (0.86), indicating that longer articles are usually better structured and more thoroughly referenced. Links are also positively correlated but provide partly independent information. A log–log scatter plot of links versus references confirms this trend: articles with more links often include more references, though variation remains, showing that links and references capture complementary aspects of article richness.
-
-\begin{figure}[H]
+  \end{minipage}
+  \hfill
+  \begin{minipage}[b]{0.48\textwidth}
     \centering
     \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/features_corr.png}
-    \caption{Feature correlation heatmap and links vs references scatter plot}
+    \caption{Correlation heatmap and link–reference scatter}
     \label{fig:features_correlation}
+  \end{minipage}
 \end{figure}
 
-In Feature Distributions plots, most articles cluster at the low end for page length, references, links, sections, pageviews, and recency of edits, with only a few outliers reaching extreme values—reflecting Wikipedia’s heterogeneity, where a small subset dominates in depth and attention..
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/features_dis.png}
-    \caption{Distribution of numerical features across the dataset}
-    \label{fig:features_distribution}
-\end{figure}
+In Feature Distributions plots, most articles cluster at the low end for page length, references, links, sections, pageviews, and recency of edits, with only a few outliers reaching extreme values—reflecting Wikipedia’s heterogeneity, where a small subset dominates in depth and attention.
 
 Pageviews vary widely across classes. While Featured Articles (FA) and Good Articles (GA) generally attract higher median views, many B-class and even lower-quality articles also reach high visibility. This suggests that popularity is not fully aligned with editorial quality, articles can be widely read even if their structural quality is limited.
 
+Feature Relationships Pairwise feature comparisons show clear clustering by quality: high-quality articles combine length, references, links, and sections in consistent proportions, while low-quality articles remain compact across all dimensions. Pageviews and recency of edits add further variation but only partially align with quality, reinforcing that structural completeness and editorial effort are the strongest signals of quality.
+
 \begin{figure}[H]
+  \centering
+  \begin{minipage}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/features_dis.png}
+    \caption{Distribution of numerical features}
+    \label{fig:features_distribution}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[b]{0.48\textwidth}
     \centering
     \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/pageview.png}
     \caption{Pageviews distribution by article quality class}
     \label{fig:pageviews_by_quality}
+  \end{minipage}
 \end{figure}
-
-Feature Relationships Pairwise feature comparisons show clear clustering by quality: high-quality articles combine length, references, links, and sections in consistent proportions, while low-quality articles remain compact across all dimensions. Pageviews and recency of edits add further variation but only partially align with quality, reinforcing that structural completeness and editorial effort are the strongest signals of quality.
 
 ### Network Description
 
@@ -479,6 +508,8 @@ At the same time, the benchmarks reveal that network context is not irrelevant. 
 
 Overall, our findings suggest that while GNNs may not be the ideal model for this task under current conditions, combining structural and positional information remains a promising direction, particularly if future work addresses class imbalance and employs whole-network sampling strategies.
 
+\clearpage
+
 # References
 
 ## Code and Data
@@ -530,5 +561,7 @@ Overall, our findings suggest that while GNNs may not be the ideal model for thi
 ### Repository
 
 The complete codebase, documentation, and reproducible experiments are available at: <https://github.com/Ari-manius/DLSS-WAQP>
+
+\clearpage
 
 ## Literature
