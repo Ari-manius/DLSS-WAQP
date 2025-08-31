@@ -2,39 +2,76 @@
 title: "Wikipedia Article Quality Prediction"
 subtitle: "Final Report: DLSS"
 author: 
-  - name: "Nafiseh Tavakol, Kuon Ito, Lorenz, Rückert, Marius Helten \n
-  https://github.com/Ari-manius/DLSS-WAQP"
+  - name: "Nafiseh Tavakol, Kuon Ito, Lorenz, Rückert, Marius Helten \n https://github.com/Ari-manius/DLSS-WAQP"
     affiliation: "1406810"
 editor: visual
-date: "`r format(Sys.Date(), '%B %d, %Y')`" 
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+
+# KOMA class + options
+documentclass: scrartcl
+classoption:
+  - DIV=11
+  - numbers=noendperiod
+  - titlepage 
+
 format:
   pdf:
+    geometry: top=0.6in, bottom=0.7in, left=0.55in, right=0.55in, includefoot, footskip=10pt
     colorlinks: true
     links-as-notes: true
-    include-in-header: |
-      % Margins
-      \geometry{top=0.7in, bottom=0.7in, left=0.6in, right=0.6in}
+    header-includes: |
+      \KOMAoption{captions}{tableheading}
+      \usepackage{caption}
+      \captionsetup{font=small}
+      % Title block styling (first page)
+      \usepackage{titling}
+      \pretitle{\begin{center}\Huge\bfseries}
+      \posttitle{\end{center}}
+      \preauthor{\begin{center}\large}
+      \postauthor{\end{center}}
+      \predate{\begin{center}\large}
+      \postdate{\begin{figure}[H]\centering\includegraphics[width=.7\textwidth]{Images/cover_image2.png}\end{figure}\end{center}}
 
-      % Slightly tighter line spacing (helps overall)
+
+      
+
+      % Slightly tighter line spacing
       \usepackage{setspace}
       \setstretch{1.02}
 
-      % Force compact paragraphs after all packages load
+      % Compact paragraphs: no extra vertical gap, small indent
       \AtBeginDocument{%
-        \setlength{\parskip}{0pt}%  no vertical gap between paragraphs
-        \setlength{\parindent}{1em}% small indent to mark new paragraph
+        \setlength{\parskip}{0pt}%
+        \setlength{\parindent}{1em}%
       }
 
-      % Most visible spacing is around headings – tighten it
-      \usepackage{titlesec}
-      \titlespacing*{\section}{0pt}{0.6\baselineskip}{0.25\baselineskip}
-      \titlespacing*{\subsection}{0pt}{0.45\baselineskip}{0.2\baselineskip}
-      \titlespacing*{\subsubsection}{0pt}{0.4\baselineskip}{0.18\baselineskip}
+      % ----- TIGHT HEADINGS (KOMA way) -----
+      % Remove/near-remove space AFTER headings (no titlesec)
+      % Note: a NEGATIVE afterskip makes it run-in.
+      \RedeclareSectionCommand[
+        beforeskip=0.8ex plus .2ex minus .2ex,
+        afterskip=0.2ex
+      ]{section}
 
-      % Lists also add space – remove it
+      \RedeclareSectionCommand[
+        beforeskip=0.8ex plus .2ex minus .2ex,
+        afterskip=0.2ex
+      ]{subsection}
+
+      % Run-in subsubsection (heading flows directly into text)
+      \RedeclareSectionCommand[
+        beforeskip=0.8ex plus .2ex minus .2ex,
+        afterskip=-0.5ex
+      ]{subsubsection}
+
+       % ----- Heading fonts (classic academic style) -----
+      \setkomafont{section}{\itshape\Large}          % big bold serif
+      \setkomafont{subsection}{\itshape\normalsize}  % bold serif
+      \setkomafont{subsubsection}{\bfseries\normalsize}% italic serif
+       
+      % Compact lists
       \usepackage{enumitem}
       \setlist{nosep}
-    
 
 header-includes:
   - \usepackage{titling}  
@@ -47,7 +84,7 @@ header-includes:
       \centering
       \includegraphics[width=.8\textwidth]{Images/wiki_network_clean.png}
     \end{figure}
-    \end{center}} 
+    \end{center}}
 bibliography: references.bib
 cite-method: citeproc
 link-citations: true
@@ -63,9 +100,9 @@ knitr::opts_chunk$set(error = TRUE)
 
 # **Introduction**
 
-The Web enables anyone to read, publish, and share information at unprecedented speed and scale, greatly benefiting billions but also creating fertile ground for falsehoods [@kumar2016disinformation]. Wikipedia, as one of the most widely used sources of free knowledge, faces credibility concerns due to hoaxes and the risk of low-quality or biased contributions [@hortaribeiro2020sudden; @kumar2016disinformation; @bassani2019quality]. Although the platform employs a grading scheme from Featured Articles (FA) to Stubs, only a very small fraction of articles reach the highest quality levels, creating an imbalance that resembles anomaly detection, where rare but important cases must be identified [@warnckewang2015success; @bassani2019quality]. To address this, both manual and automated quality assessment methods have been explored. Human volunteers and WikiProjects monitor content, but scale and subjectivity limit their effectiveness. Automated approaches progressed from handcrafted textual features to machine learning models such as doc2vec [@le2014distributed], BiLSTMs, and multimodal systems that integrate images and metadata. Reddy et al. [@reddy2021nwqm] showed that multimodal learning substantially improves prediction, while Bassani and Viviani [@bassani2019quality] highlighted the challenges of reliable ground truth and found textual features more predictive than network ones. Verifiability is another key dimension: Redi et al. [@redi2019citation] introduced a taxonomy of citation reasons and showed that citation practices strongly signal credibility. Yet, as of 2019, more than 350,000 articles carried a tag, suggesting widespread unverified claims. Recent advances in Graph Neural Networks (GNNs) open new opportunities to model Wikipedia not only through text but also through its citation structures. Traditional citation benchmarks (Cora, CiteSeer, PubMed) suffer from limited diversity [@yang2016revisiting; @shchur2018pitfalls], leading to the introduction of Wiki-CS, a richer Wikipedia-based dataset [@mernyei2020wikics]. Within this landscape, approaches can be divided into content-based, focusing on semantics and syntax, and context-based, emphasizing external signals such as social or citation networks [@montiFakeNewsDetection2019].
+The Web enables anyone to read, publish, and share information at unprecedented speed and scale, greatly benefiting billions but also creating fertile ground for falsehoods [-@kumar2016disinformation]. Wikipedia, as one of the most widely used sources of free knowledge, faces credibility concerns due to hoaxes and the risk of low-quality or biased contributions [-@hortaribeiro2020sudden; -@kumar2016disinformation; -@bassani2019quality]. Although the platform employs a grading scheme from Featured Articles (FA) to Stubs, only a very small fraction of articles reach the highest quality levels, creating an imbalance that resembles anomaly detection, where rare but important cases must be identified [-@warnckewang2015success; -@bassani2019quality]. To address this, both manual and automated quality assessment methods have been explored. Human volunteers and WikiProjects monitor content, but scale and subjectivity limit their effectiveness. Automated approaches progressed from handcrafted textual features to machine learning models such as doc2vec [-@le2014distributed], BiLSTMs, and multimodal systems that integrate images and metadata. Reddy et al. [-@reddy2021nwqm] showed that multimodal learning substantially improves prediction, while Bassani and Viviani [-@bassani2019quality] highlighted the challenges of reliable ground truth and found textual features more predictive than network ones. Verifiability is another key dimension: Redi et al. [-@redi2019citation] introduced a taxonomy of citation reasons and showed that citation practices strongly signal credibility. Yet, as of 2019, more than 350,000 articles carried a tag, suggesting widespread unverified claims. Recent advances in Graph Neural Networks (GNNs) open new opportunities to model Wikipedia not only through text but also through its citation structures. Traditional citation benchmarks (Cora, CiteSeer, PubMed) suffer from limited diversity [-@yang2016revisiting; -@shchur2018pitfalls], leading to the introduction of Wiki-CS, a richer Wikipedia-based dataset [-@mernyei2020wikics]. Within this landscape, approaches can be divided into content-based, focusing on semantics and syntax, and context-based, emphasizing external signals such as social or citation networks [-@montiFakeNewsDetection2019].
 
-Our project adopts a context-based approach, an alternative to text-driven methods, by leveraging article relations (internal links) and article structure (sections, citations, length) [@hanGraphNeuralNetworks2020]. A central question here is whether Wikipedia’s internal links function similar to academic citations, where high-quality papers often cite other influential works [@arroyo2020science]. Unlike scholarly references, which carry signals of reliability and authority, Wikipedia’s internal links are often added freely whenever a related article exists. Many wikilinks are automatically generated or inserted via templates (infoboxes, navigation boxes, etc.) [@ruprechter2020relating]. By applying GNNs, we aim to explore to what extent signals of reliability and authority can propagate through these networks and how such context-based signals may complement structural features in predicting article quality.
+Our project adopts a context-based approach, an alternative to text-driven methods, by leveraging article relations (internal links) and article structure (sections, citations, length) [-@hanGraphNeuralNetworks2020]. A central question here is whether Wikipedia’s internal links function similar to academic citations, where high-quality papers often cite other influential works [-@arroyo2020science]. Unlike scholarly references, which carry signals of reliability and authority, Wikipedia’s internal links are often added freely whenever a related article exists. Many wikilinks are automatically generated or inserted via templates (infoboxes, navigation boxes, etc.) [-@ruprechter2020relating]. By applying GNNs, we aim to explore to what extent signals of reliability and authority can propagate through these networks and how such context-based signals may complement structural features in predicting article quality.
 
 # Data
 
@@ -73,7 +110,7 @@ Our project adopts a context-based approach, an alternative to text-driven metho
 
 This project combined three complementary data sources to capture different aspects of Wikipedia articles: the Pageviews API (popularity and user attention), the Edit History API (editorial activity patterns, including user and bot edits), and the Wikipedia API (article crawling and network construction). Article metadata was retrieved by mapping page IDs to titles via the MediaWiki API, which only supports up to 50 IDs per request; page IDs were split into batches of 50, queried in parallel with ThreadPoolExecutor, and merged back into the dataset before saving to CSV. One year of pageview data (July 2023–July 2024) was collected for each article from the Wikimedia REST API, aggregated into annual totals, and stored incrementally to prevent data loss; parallel requests and tqdm progress tracking ensured efficiency. Temporal metadata was added by retrieving last edit timestamps through the REST API’s `/page/summary/{title}` endpoint, using randomized delays (0.3–0.6s), retry logic for HTTP 429 errors, and parallel workers to accelerate processing. Editorial activity was captured for July 2023–July 2025, with edit counts broken down by registered users, anonymous users, group bots, and name bots, then aggregated into human vs. bot contributions. To respect API limits, randomized delays, proxy usage and periodic checkpoints were used; data collection was parallelized for efficiency. Together, these steps produced a comprehensive dataset covering article text and structure, popularity, recency, editorial activity, and network relationships, providing a robust foundation for downstream analyses.
 
-The network was obtained by a BFS-search starting with 4 seed articles (Influenza, Serena Williams, French Revolution, Quantum mechanics) and then expanding this seed through following internal links until a sufficient network size was reached. Each seed-article belongs to one of the four largest Wiki-Projects (Serena Williams → WikiProject Biography (largest), Influenza → WikiProject Medicine, French Revolution → WikiProject History, Quantum mechanics → WikiProject Physics). This was done to get a solid variety of article data. Only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia. A better approach would have been to follow the one outlined by [@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019].
+The network was obtained by a BFS-search starting with 4 seed articles (Influenza, Serena Williams, French Revolution, Quantum mechanics) and then expanding this seed through following internal links until a sufficient network size was reached. Each seed-article belongs to one of the four largest Wiki-Projects (Serena Williams → WikiProject Biography (largest), Influenza → WikiProject Medicine, French Revolution → WikiProject History, Quantum mechanics → WikiProject Physics). This was done to get a solid variety of article data. Only the internal links pointing to articles in the sample were kept. This gave a snowball sample of the whole of wikipedia. It has to be noted that this provides a biased sample of the network, that by no means is representative of all of wikipedia. A better approach would have been to follow the one outlined by [-@cristianconsonniWikiLinkGraphsCompleteLongitudinal2019].
 
 ### Article Quality
 
@@ -146,41 +183,47 @@ kable(vars, caption = "Variables grouped by category with their definitions")
 
 The dataset comprises \~380,000 Wikipedia articles labeled with quality classes, but the distribution is highly imbalanced: most articles fall into low-quality categories (Stub, Start), while only a small minority reach high-quality levels (FA, GA, FL, A). Quality progression is evident—higher-quality articles are much longer and include richer structural and citation features such as references, links, and sections. In contrast, Stub and Start articles remain short and sparsely referenced, reflecting limited editorial development. These patterns confirm that structural richness and citation density are closely associated with editorial quality.
 
+The heatmap shows strong correlations among structural features, with the highest between page length and references (0.86), indicating that longer articles are usually better structured and more thoroughly referenced. Links are also positively correlated but provide partly independent information. A log–log scatter plot of links versus references confirms this trend: articles with more links often include more references, though variation remains, showing that links and references capture complementary aspects of article richness.
+
 \begin{figure}[H]
+  \centering
+  \begin{minipage}[b]{0.48\textwidth}
     \centering
     \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/quality_distribution.png}
     \caption{Distribution of Wikipedia article quality classes}
     \label{fig:quality_distribution}
-\end{figure}
-
-The heatmap shows strong correlations among structural features, with the highest between page length and references (0.86), indicating that longer articles are usually better structured and more thoroughly referenced. Links are also positively correlated but provide partly independent information. A log–log scatter plot of links versus references confirms this trend: articles with more links often include more references, though variation remains, showing that links and references capture complementary aspects of article richness.
-
-\begin{figure}[H]
+  \end{minipage}
+  \hfill
+  \begin{minipage}[b]{0.48\textwidth}
     \centering
     \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/features_corr.png}
-    \caption{Feature correlation heatmap and links vs references scatter plot}
+    \caption{Correlation heatmap and link–reference scatter}
     \label{fig:features_correlation}
+  \end{minipage}
 \end{figure}
 
-In Feature Distributions plots, most articles cluster at the low end for page length, references, links, sections, pageviews, and recency of edits, with only a few outliers reaching extreme values—reflecting Wikipedia’s heterogeneity, where a small subset dominates in depth and attention..
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/features_dis.png}
-    \caption{Distribution of numerical features across the dataset}
-    \label{fig:features_distribution}
-\end{figure}
+In Feature Distributions plots, most articles cluster at the low end for page length, references, links, sections, pageviews, and recency of edits, with only a few outliers reaching extreme values—reflecting Wikipedia’s heterogeneity, where a small subset dominates in depth and attention.
 
 Pageviews vary widely across classes. While Featured Articles (FA) and Good Articles (GA) generally attract higher median views, many B-class and even lower-quality articles also reach high visibility. This suggests that popularity is not fully aligned with editorial quality, articles can be widely read even if their structural quality is limited.
 
+Feature Relationships Pairwise feature comparisons show clear clustering by quality: high-quality articles combine length, references, links, and sections in consistent proportions, while low-quality articles remain compact across all dimensions. Pageviews and recency of edits add further variation but only partially align with quality, reinforcing that structural completeness and editorial effort are the strongest signals of quality.
+
 \begin{figure}[H]
+  \centering
+  \begin{minipage}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/features_dis.png}
+    \caption{Distribution of numerical features}
+    \label{fig:features_distribution}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[b]{0.48\textwidth}
     \centering
     \includegraphics[width=\textwidth, height=5cm, keepaspectratio]{Images/pageview.png}
     \caption{Pageviews distribution by article quality class}
     \label{fig:pageviews_by_quality}
+  \end{minipage}
 \end{figure}
-
-Feature Relationships Pairwise feature comparisons show clear clustering by quality: high-quality articles combine length, references, links, and sections in consistent proportions, while low-quality articles remain compact across all dimensions. Pageviews and recency of edits add further variation but only partially align with quality, reinforcing that structural completeness and editorial effort are the strongest signals of quality.
 
 ### Network Description
 
@@ -479,6 +522,8 @@ At the same time, the benchmarks reveal that network context is not irrelevant. 
 
 Overall, our findings suggest that while GNNs may not be the ideal model for this task under current conditions, combining structural and positional information remains a promising direction, particularly if future work addresses class imbalance and employs whole-network sampling strategies.
 
+\clearpage
+
 # References
 
 ## Code and Data
@@ -495,9 +540,11 @@ Overall, our findings suggest that while GNNs may not be the ideal model for thi
 
 <!-- -   Data Processing & Machine Learning: -->
 
-    -   pandas & polars
+```         
+-   pandas & polars
 
-    -   scikit-learn
+-   scikit-learn
+```
 
 -   Data manipulation and analysis:
 
@@ -530,5 +577,7 @@ Overall, our findings suggest that while GNNs may not be the ideal model for thi
 ### Repository
 
 The complete codebase, documentation, and reproducible experiments are available at: <https://github.com/Ari-manius/DLSS-WAQP>
+
+\clearpage
 
 ## Literature
